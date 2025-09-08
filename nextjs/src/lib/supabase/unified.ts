@@ -1,4 +1,3 @@
-import {SupabaseClient} from "@supabase/supabase-js";
 import {Database} from "@/lib/types";
 
 export enum ClientType {
@@ -7,10 +6,12 @@ export enum ClientType {
 }
 
 export class SassClient {
-    private client: SupabaseClient<Database>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private client: any;
     private clientType: ClientType;
 
-    constructor(client: SupabaseClient, clientType: ClientType) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(client: any, clientType: ClientType) {
         this.client = client;
         this.clientType = clientType;
 

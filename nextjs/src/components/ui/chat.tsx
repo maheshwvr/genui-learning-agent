@@ -67,7 +67,7 @@ export function Chat({
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Start learning! Ask me anything you'd like to know.</p>
+                  <p>Start learning! Ask me anything you&apos;d like to know.</p>
                 </div>
               )}
               
