@@ -42,6 +42,30 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
+    // Check if user needs to complete profile (only for app routes, not auth routes)
+    if (user?.user && request.nextUrl.pathname.startsWith('/app')) {
+        const firstName = user.user.user_metadata?.first_name;
+        const lastName = user.user.user_metadata?.last_name;
+        
+        if (!firstName || !lastName) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/auth/complete-profile'
+            return NextResponse.redirect(url)
+        }
+    }
+
+    // Check if user needs to complete profile (skip the complete-profile page itself)
+    if (user?.user && request.nextUrl.pathname.startsWith('/app') && request.nextUrl.pathname !== '/auth/complete-profile') {
+        const firstName = user.user.user_metadata?.first_name;
+        const lastName = user.user.user_metadata?.last_name;
+        
+        if (!firstName || !lastName) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/auth/complete-profile'
+            return NextResponse.redirect(url)
+        }
+    }
+
     // IMPORTANT: You *must* return the supabaseResponse object as it is.
     // If you're creating a new response object with NextResponse.next() make sure to:
     // 1. Pass the request in it, like so:

@@ -9,11 +9,22 @@ import { MFASetup } from '@/components/MFASetup';
 
 export default function UserSettingsPage() {
     const { user } = useGlobal();
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [profileLoading, setProfileLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // Initialize name fields when user data loads
+    React.useEffect(() => {
+        if (user) {
+            setFirstName(user.first_name || '');
+            setLastName(user.last_name || '');
+        }
+    }, [user]);
 
 
 
@@ -54,6 +65,39 @@ export default function UserSettingsPage() {
         }
     };
 
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!firstName.trim() || !lastName.trim()) {
+            setError('First name and last name are required');
+            return;
+        }
+
+        setProfileLoading(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const supabase = await createSPASassClient();
+            const { error } = await supabase.updateUserProfile(firstName.trim(), lastName.trim());
+
+            if (error) throw error;
+
+            setSuccess('Profile updated successfully');
+            // Refresh the page to update the context
+            window.location.reload();
+        } catch (err: Error | unknown) {
+            if (err instanceof Error) {
+                console.error('Error updating profile:', err);
+                setError(err.message);
+            } else {
+                console.error('Error updating profile:', err);
+                setError('Failed to update profile');
+            }
+        } finally {
+            setProfileLoading(false);
+        }
+    };
+
 
 
     return (
@@ -88,15 +132,48 @@ export default function UserSettingsPage() {
                             </CardTitle>
                             <CardDescription>Your account information</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium text-gray-500">User ID</label>
-                                <p className="mt-1 text-sm">{user?.id}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-500">Email</label>
-                                <p className="mt-1 text-sm">{user?.email}</p>
-                            </div>
+                        <CardContent>
+                            <form onSubmit={handleProfileUpdate} className="space-y-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div>
+                                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                                            First Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="firstName"
+                                            value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)}
+                                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 text-sm"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                                            Last Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="lastName"
+                                            value={lastName}
+                                            onChange={(e) => setLastName(e.target.value)}
+                                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 text-sm"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Email</label>
+                                    <p className="mt-1 text-sm">{user?.email}</p>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={profileLoading}
+                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                                >
+                                    {profileLoading ? 'Updating...' : 'Update Profile'}
+                                </button>
+                            </form>
                         </CardContent>
                     </Card>
 

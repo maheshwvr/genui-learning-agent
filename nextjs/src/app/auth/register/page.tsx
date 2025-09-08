@@ -7,6 +7,8 @@ import Link from 'next/link';
 import SSOButtons from "@/components/SSOButtons";
 
 export default function RegisterPage() {
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,6 +26,11 @@ export default function RegisterPage() {
             return;
         }
 
+        if (!firstName.trim() || !lastName.trim()) {
+            setError('First name and last name are required');
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("Passwords don't match");
             return;
@@ -33,7 +40,7 @@ export default function RegisterPage() {
 
         try {
             const supabase = await createSPASassClient();
-            const { error } = await supabase.registerEmail(email, password);
+            const { error } = await supabase.registerEmailWithProfile(email, password, firstName.trim(), lastName.trim());
 
             if (error) throw error;
 
@@ -58,6 +65,44 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                            First Name
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                id="firstName"
+                                name="firstName"
+                                type="text"
+                                autoComplete="given-name"
+                                required
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                            Last Name
+                        </label>
+                        <div className="mt-1">
+                            <input
+                                id="lastName"
+                                name="lastName"
+                                type="text"
+                                autoComplete="family-name"
+                                required
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                         Email address

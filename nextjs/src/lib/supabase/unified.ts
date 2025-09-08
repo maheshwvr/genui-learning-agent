@@ -30,6 +30,28 @@ export class SassClient {
         });
     }
 
+    async registerEmailWithProfile(email: string, password: string, firstName: string, lastName: string) {
+        return this.client.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    first_name: firstName,
+                    last_name: lastName
+                }
+            }
+        });
+    }
+
+    async updateUserProfile(firstName: string, lastName: string) {
+        return this.client.auth.updateUser({
+            data: {
+                first_name: firstName,
+                last_name: lastName
+            }
+        });
+    }
+
     async exchangeCodeForSession(code: string) {
         return this.client.auth.exchangeCodeForSession(code);
     }
@@ -87,11 +109,11 @@ export class SassClient {
     }
 
     async removeTask (id: string) {
-        return this.client.from('todo_list').delete().eq('id', id)
+        return this.client.from('todo_list').delete().eq('id', parseInt(id))
     }
 
     async updateAsDone (id: string) {
-        return this.client.from('todo_list').update({done: true}).eq('id', id)
+        return this.client.from('todo_list').update({done: true}).eq('id', parseInt(id))
     }
 
     getSupabaseClient() {

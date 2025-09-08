@@ -35,6 +35,16 @@ export default function LoginPage() {
             if (mfaData.nextLevel === 'aal2' && mfaData.nextLevel !== mfaData.currentLevel) {
                 setShowMFAPrompt(true);
             } else {
+                // Check if user profile is complete
+                const { data: { user } } = await supabase.auth.getUser();
+                const firstName = user?.user_metadata?.first_name;
+                const lastName = user?.user_metadata?.last_name;
+                
+                if (!firstName || !lastName) {
+                    router.push('/auth/complete-profile');
+                    return;
+                }
+                
                 router.push('/app');
                 return;
             }

@@ -9,9 +9,9 @@ import {
     X,
     ChevronDown,
     LogOut,
-    Key, Files, LucideListTodo, GraduationCap,
+    Key, FolderInput, LucideListTodo, BookOpen,
 } from 'lucide-react';
-import { useGlobal } from "@/lib/context/GlobalContext";
+import { useGlobal, getInitials, getDisplayName } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -35,21 +35,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/app/user-settings')
     };
 
-    const getInitials = (email: string) => {
-        const parts = email.split('@')[0].split(/[._-]/);
-        return parts.length > 1
-            ? (parts[0][0] + parts[1][0]).toUpperCase()
-            : parts[0].slice(0, 2).toUpperCase();
-    };
-
     const productName = process.env.NEXT_PUBLIC_PRODUCTNAME;
 
     const navigation = [
         { name: 'Homepage', href: '/app', icon: Home },
-        { name: 'Learn', href: '/app/learn', icon: GraduationCap },
-        { name: 'Example Storage', href: '/app/storage', icon: Files },
-        { name: 'Example Table', href: '/app/table', icon: LucideListTodo },
-        { name: 'User Settings', href: '/app/user-settings', icon: User },
+        { name: 'Materials', href: '/app/storage', icon: FolderInput },
+        { name: 'Tasks', href: '/app/table', icon: LucideListTodo },
+        { name: 'Learn', href: '/app/learn', icon: BookOpen },
+        { name: 'Settings', href: '/app/user-settings', icon: User },
     ];
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
@@ -120,10 +113,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         >
                             <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
                                 <span className="text-primary-700 font-medium">
-                                    {user ? getInitials(user.email) : '??'}
+                                    {getInitials(user)}
                                 </span>
                             </div>
-                            <span>{user?.email || 'Loading...'}</span>
+                            <span>{getDisplayName(user)}</span>
                             <ChevronDown className="h-4 w-4"/>
                         </button>
 
@@ -132,8 +125,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 <div className="p-2 border-b border-gray-100">
                                     <p className="text-xs text-gray-500">Signed in as</p>
                                     <p className="text-sm font-medium text-gray-900 truncate">
-                                        {user?.email}
+                                        {getDisplayName(user)}
                                     </p>
+                                    {user?.email && (
+                                        <p className="text-xs text-gray-500 truncate">
+                                            {user.email}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="py-1">
                                     <button
