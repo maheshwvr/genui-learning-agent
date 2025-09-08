@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@ai-sdk/google": "^2.0.13",
+    "@nanostores/react": "github:ai/react",
+    "ai": "^5.0.35"
+  }
+}
