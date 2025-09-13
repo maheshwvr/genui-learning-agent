@@ -4,7 +4,9 @@ import { useChat } from 'ai/react';
 import { Chat } from '@/components/ui/chat';
 
 export default function LearnPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat({
+    api: '/api/chat'
+  });
 
   return (
     <div className="h-full flex flex-col">
