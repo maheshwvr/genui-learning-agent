@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       system: 'You are a helpful AI learning assistant. Your role is to help users learn new concepts, answer questions, and provide educational guidance. Be patient, encouraging, and provide clear explanations tailored to the user\'s level of understanding.',
     });
 
-    console.log('Streaming response created');
+    console.log(`Streaming response created`);
     
     return result.toDataStreamResponse();
   } catch (error) {
@@ -24,6 +24,6 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ error: 'Error processing request' }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
-    });
+    })
   }
 }
