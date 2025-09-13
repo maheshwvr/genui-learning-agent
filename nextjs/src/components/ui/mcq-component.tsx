@@ -88,6 +88,35 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
     }
   };
 
+  const getDifficultyBoxStyles = () => {
+    switch (mcq.difficulty) {
+      case 'easy': 
+        return {
+          bg: 'bg-green-100',
+          text: 'text-green-800 font-bold',
+          border: 'border-green-200'
+        };
+      case 'medium': 
+        return {
+          bg: 'bg-yellow-100',
+          text: 'text-yellow-800 font-bold',
+          border: 'border-yellow-200'
+        };
+      case 'hard': 
+        return {
+          bg: 'bg-red-100',
+          text: 'text-red-800 font-bold',
+          border: 'border-red-200'
+        };
+      default: 
+        return {
+          bg: 'bg-gray-100',
+          text: 'text-gray-800 font-bold',
+          border: 'border-gray-200'
+        };
+    }
+  };
+
   return (
     <Card className={cn("my-4 max-w-2xl", className)}>
       <CardHeader className="pb-4">
@@ -96,12 +125,22 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
             <HelpCircle className="w-5 h-5 text-primary" />
             <CardTitle className="text-lg">Quick Check</CardTitle>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Topic:</span>
-            <span className="font-medium">{mcq.topic}</span>
-            <span className={cn("text-xs px-2 py-1 rounded-full", getDifficultyColor())}>
-              {mcq.difficulty}
-            </span>
+          <div className="flex items-center gap-3">
+            {/* Grey topic box */}
+            <div className="px-3 py-1 rounded-md bg-gray-100 border border-gray-200">
+              <span className="text-xs text-gray-600 font-medium">Topic:</span>
+              <span className="text-sm text-gray-800 font-bold ml-1">{mcq.topic}</span>
+            </div>
+            {/* Difficulty-colored box showing difficulty level */}
+            <div className={cn(
+              "px-3 py-1 rounded-md border",
+              getDifficultyBoxStyles().bg,
+              getDifficultyBoxStyles().border
+            )}>
+              <span className={cn("text-sm", getDifficultyBoxStyles().text)}>
+                {mcq.difficulty}
+              </span>
+            </div>
           </div>
         </div>
         <CardDescription className="text-base font-medium text-foreground mt-2">
