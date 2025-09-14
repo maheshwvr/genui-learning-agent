@@ -38,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const productName = process.env.NEXT_PUBLIC_PRODUCTNAME;
 
     const navigation = [
-        { name: 'Homepage', href: '/app', icon: Home },
+        { name: 'Homepage', href: '/', icon: Home },
         { name: 'Materials', href: '/app/storage', icon: FolderInput },
         { name: 'Tasks', href: '/app/table', icon: LucideListTodo },
         { name: 'Learn', href: '/app/learn', icon: BookOpen },

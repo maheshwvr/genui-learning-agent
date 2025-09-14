@@ -34,28 +34,18 @@ export async function updateSession(request: NextRequest) {
     // IMPORTANT: DO NOT REMOVE auth.getUser()
 
     const {data: user} = await supabase.auth.getUser()
-    if (
-        (!user || !user.user) && request.nextUrl.pathname.startsWith('/app')
-    ) {
+    
+    // Protect root page and app routes
+    const isProtectedRoute = request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/app')
+    
+    if ((!user || !user.user) && isProtectedRoute) {
         const url = request.nextUrl.clone()
         url.pathname = '/auth/login'
         return NextResponse.redirect(url)
     }
 
-    // Check if user needs to complete profile (only for app routes, not auth routes)
-    if (user?.user && request.nextUrl.pathname.startsWith('/app')) {
-        const firstName = user.user.user_metadata?.first_name;
-        const lastName = user.user.user_metadata?.last_name;
-        
-        if (!firstName || !lastName) {
-            const url = request.nextUrl.clone()
-            url.pathname = '/auth/complete-profile'
-            return NextResponse.redirect(url)
-        }
-    }
-
-    // Check if user needs to complete profile (skip the complete-profile page itself)
-    if (user?.user && request.nextUrl.pathname.startsWith('/app') && request.nextUrl.pathname !== '/auth/complete-profile') {
+    // Check if user needs to complete profile (only for protected routes, not auth routes)
+    if (user?.user && isProtectedRoute && !request.nextUrl.pathname.startsWith('/auth')) {
         const firstName = user.user.user_metadata?.first_name;
         const lastName = user.user.user_metadata?.last_name;
         

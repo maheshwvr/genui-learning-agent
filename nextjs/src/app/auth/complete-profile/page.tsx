@@ -31,7 +31,7 @@ export default function CompleteProfilePage() {
                 const firstName = user.user_metadata?.first_name;
                 const lastName = user.user_metadata?.last_name;
                 if (firstName && lastName) {
-                    router.push('/app');
+                    router.push('/');
                     return;
                 }
                 
@@ -64,7 +64,7 @@ export default function CompleteProfilePage() {
             if (error) throw error;
 
             // Redirect to dashboard after successful update
-            window.location.href = '/app';
+            window.location.href = '/';
         } catch (err: Error | unknown) {
             if(err instanceof Error) {
                 setError(err.message);
