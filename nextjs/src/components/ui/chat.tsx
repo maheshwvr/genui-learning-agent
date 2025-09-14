@@ -14,7 +14,7 @@ import { MCQComponent } from '@/components/ui/mcq-component'
 import { MCQLoading } from '@/components/ui/mcq-loading'
 import { TFComponent } from '@/components/ui/tf-component'
 import { TFLoading } from '@/components/ui/tf-loading'
-import { type MCQ, type TF } from '@/lib/ai/lesson-schemas'
+import { type MCQ, type TF, type MCQOption } from '@/lib/ai/lesson-schemas'
 
 interface ChatProps {
   messages: Message[]
@@ -56,7 +56,7 @@ function safeJSONParse(jsonString: string): unknown {
   
   try {
     return JSON.parse(trimmed);
-  } catch (error) {
+  } catch {
     // Silently return null for parsing errors during streaming
     return null;
   }
@@ -155,7 +155,7 @@ function parseTFFromContent(content: string): TF | null {
     }
     
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -205,7 +205,7 @@ function parseMCQFromContent(content: string): MCQ | null {
     }
     
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -363,7 +363,7 @@ function extractTFFromMessage(message: Message): TF | null {
 }
 
 // Function to generate silent summary message for MCQ results
-function generateMCQSummary(mcq: MCQ, selectedOption: any, isCorrect: boolean): string {
+function generateMCQSummary(mcq: MCQ, selectedOption: MCQOption, isCorrect: boolean): string {
   const correctOption = mcq.options.find(opt => opt.isCorrect);
   const selectedText = selectedOption?.text || 'Unknown';
   const correctText = correctOption?.text || 'Unknown';
