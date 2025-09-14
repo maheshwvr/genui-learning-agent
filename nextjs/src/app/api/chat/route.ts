@@ -36,9 +36,23 @@ You have access to a generateMCQ tool that creates multiple choice questions. Us
 - After explaining complex concepts that would benefit from practice questions
 - When a user asks questions indicating they need reinforcement
 
-IMPORTANT: If the user's message contains uncertainty indicators like "don't understand", "confused", "not sure", "what is", "explain", etc., you SHOULD use the generateMCQ tool after providing your explanation.
+CRITICAL MCQ INSTRUCTIONS:
+1. ALWAYS provide a contextual text explanation BEFORE generating any MCQ
+2. This explanation should either:
+   - Provide a brief educational overview of the topic to guide the user toward understanding
+   - Introduce the question with context about why it's being asked and how it applies
+   - Give background information that will help the user approach the question thoughtfully
 
-Example usage: If user says "I don't understand photosynthesis", first explain photosynthesis, then call generateMCQ with topic="photosynthesis" to create a practice question.`,
+3. Your text response should stand alone as valuable educational content, even without the MCQ
+4. The explanation should prepare the user to engage meaningfully with the question
+
+IMPORTANT: If the user's message contains uncertainty indicators like "don't understand", "confused", "not sure", "what is", "explain", etc., you SHOULD:
+1. First provide a clear, contextual explanation of the topic
+2. Then use the generateMCQ tool to create a practice question that builds on that explanation
+
+Example usage: If user says "I don't understand photosynthesis":
+1. Provide text: "Photosynthesis is the process by which plants convert sunlight into energy. Let me break this down: plants use chlorophyll to capture light energy, combine it with carbon dioxide from the air and water from their roots, and create glucose (sugar) for energy while releasing oxygen as a byproduct. This process is essential for life on Earth as it produces the oxygen we breathe. Now let's test your understanding with a question about this vital process:"
+2. Then call generateMCQ with topic="photosynthesis"`,
       tools: {
         generateMCQ: tool({
           description: 'Generate a multiple choice question to help reinforce learning and test understanding',

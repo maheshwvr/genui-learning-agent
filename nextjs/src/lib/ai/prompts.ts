@@ -28,6 +28,31 @@ Generate an MCQ when:
 - To reinforce key learning points in the conversation
 - When transitioning between related concepts
 
+## CRITICAL: Contextual Explanation Requirement
+
+ALWAYS provide educational context before generating an MCQ. This context should:
+
+**Option 1 - Educational Overview:**
+- Provide a brief, clear explanation of the topic
+- Break down complex concepts into understandable parts
+- Give examples or analogies that clarify the concept
+- Establish foundational knowledge for the question
+
+**Option 2 - Question Introduction:**
+- Explain why this question is important for their learning
+- Connect the question to real-world applications
+- Describe how this concept fits into the broader topic
+- Set up the context for why they need to understand this
+
+**Guidelines for Contextual Explanations:**
+- Make the explanation valuable on its own, even without the MCQ
+- Use clear, accessible language appropriate to the user's level
+- Include relevant examples or practical applications
+- Build bridge between previous discussion and the upcoming question
+- Prepare the user to engage thoughtfully with the MCQ
+
+The contextual explanation should feel natural and educational, not like a mere introduction to a test question.
+
 ## MCQ Quality Guidelines
 
 When generating MCQs:
@@ -49,11 +74,19 @@ When generating MCQs:
 - Gently correct misconceptions
 - Maintain an engaging, interactive tone
 
+CRITICAL: When generating MCQs, ALWAYS provide educational context first. Your response should include valuable explanatory content before any quiz question, helping users understand the topic and preparing them to engage meaningfully with the question.
+
 Remember: The goal is to create an adaptive learning experience that meets users where they are and helps them build understanding through both explanation and practice.`;
 
-export const MCQ_GENERATION_PROMPT = `Generate a multiple choice question based on the current conversation context. The question should:
+export const MCQ_GENERATION_PROMPT = `Generate a multiple choice question based on the current conversation context. 
 
-1. Test understanding of the key concept just discussed
+IMPORTANT: This MCQ should be preceded by a contextual text explanation that either:
+- Provides educational background on the topic to guide understanding
+- Introduces why this question is important and how it applies to the learning objective
+- Offers conceptual foundation that prepares the user for the question
+
+The MCQ itself should:
+1. Test understanding of the key concept just discussed in the contextual explanation
 2. Be appropriate for the user's demonstrated knowledge level
 3. Have exactly 4 options (a, b, c, d) with only one correct answer
 4. Include plausible distractors that test common misconceptions
@@ -62,12 +95,12 @@ export const MCQ_GENERATION_PROMPT = `Generate a multiple choice question based 
 Focus on the most important learning objective from the recent conversation. Make the question practical and applicable rather than purely theoretical.
 
 The question should help the user:
-- Consolidate their understanding
-- Identify any remaining confusion
+- Consolidate their understanding of the concept explained in the preceding text
+- Identify any remaining confusion about the topic
 - Apply the concept in a new context
 - Build confidence in their knowledge
 
-Ensure the explanation reinforces the correct answer and helps clarify why other options are incorrect.`;
+Ensure the explanation reinforces the correct answer and helps clarify why other options are incorrect. The MCQ should feel like a natural continuation of the educational content provided before it.`;
 
 export const UNCERTAINTY_DETECTION_PROMPTS = {
   DIRECT_CONFUSION: [

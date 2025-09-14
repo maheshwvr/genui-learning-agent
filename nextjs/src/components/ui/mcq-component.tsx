@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, HelpCircle } from 'lucide-react';
@@ -23,6 +24,23 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
     : null;
 
   const correctOption = mcq.options.find(option => option.isCorrect);
+
+  // Custom markdown components for MCQ content
+  const markdownComponents = {
+    h1: ({ children }: any) => <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-sm font-semibold mt-2 mb-1">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-medium mt-1 mb-1">{children}</h3>,
+    p: ({ children }: any) => <p className="text-sm mb-1 last:mb-0">{children}</p>,
+    strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+    em: ({ children }: any) => <em className="italic">{children}</em>,
+    code: ({ children }: any) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+    pre: ({ children }: any) => <pre className="bg-muted p-2 rounded text-xs font-mono overflow-x-auto my-1">{children}</pre>,
+    ul: ({ children }: any) => <ul className="list-disc pl-4 mb-1 space-y-0.5">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal pl-4 mb-1 space-y-0.5">{children}</ol>,
+    li: ({ children }: any) => <li className="text-sm">{children}</li>,
+    blockquote: ({ children }: any) => <blockquote className="border-l-2 border-muted-foreground pl-2 italic my-1">{children}</blockquote>,
+    a: ({ children, href }: any) => <a href={href} className="text-primary hover:underline text-sm">{children}</a>,
+  };
 
   const handleOptionSelect = (optionId: string) => {
     if (isSubmitted) return;
@@ -134,9 +152,11 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
             </div>
           </div>
         </div>
-        <CardDescription className="text-sm font-medium text-foreground mt-1">
-          {mcq.question}
-        </CardDescription>
+        <div className="text-sm font-medium text-foreground mt-1">
+          <ReactMarkdown components={markdownComponents}>
+            {mcq.question}
+          </ReactMarkdown>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-2">
@@ -152,7 +172,11 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
                 <span className="font-semibold text-sm w-5 h-5 rounded-full border-2 border-current flex items-center justify-center text-xs">
                   {option.id.toUpperCase()}
                 </span>
-                <span className="text-sm">{option.text}</span>
+                <div className="text-sm">
+                  <ReactMarkdown components={markdownComponents}>
+                    {option.text}
+                  </ReactMarkdown>
+                </div>
               </div>
               {getOptionIcon(option)}
             </div>
@@ -189,9 +213,11 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {mcq.explanation}
-            </p>
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              <ReactMarkdown components={markdownComponents}>
+                {mcq.explanation}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
       </CardContent>
