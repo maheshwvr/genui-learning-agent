@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable experimental features for better performance
-  experimental: {
-    ppr: true, // Partial Prerendering for better performance
-    serverComponentsExternalPackages: ['@paddle/paddle-node-sdk'], // External packages for server components
-  },
 
   // Image optimization for your SaaS assets
   images: {
@@ -59,6 +54,12 @@ const nextConfig: NextConfig = {
         tls: false,
       };
     }
+    
+    // External packages configuration
+    if (isServer) {
+      config.externals.push('@paddle/paddle-node-sdk');
+    }
+    
     return config;
   },
 
