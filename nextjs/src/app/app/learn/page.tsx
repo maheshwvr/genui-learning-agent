@@ -4,7 +4,7 @@ import { useChat } from 'ai/react';
 import { Chat } from '@/components/ui/chat';
 
 export default function LearnPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, stop, append } = useChat({
     api: '/api/chat'
   });
 
@@ -17,6 +17,7 @@ export default function LearnPage() {
         handleSubmit={handleSubmit}
         isGenerating={isLoading}
         stop={stop}
+        append={append}
       />
     </div>
   );

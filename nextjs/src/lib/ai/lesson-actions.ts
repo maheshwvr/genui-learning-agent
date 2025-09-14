@@ -21,6 +21,9 @@ export async function generateMCQAction(params: {
     // Generate MCQ content using AI
     const { object: mcq } = await generateObject({
       model: google('gemini-2.5-flash-lite'),
+      temperature: 0.5,
+      topP: 0.8,
+      topK: 40,
       schema: mcqSchema,
       prompt: `${MCQ_GENERATION_PROMPT}
 
@@ -60,6 +63,9 @@ export async function generateTFAction(params: {
     // Generate T/F content using AI
     const { object: tf } = await generateObject({
       model: google('gemini-2.5-flash-lite'),
+      temperature: 0.5,
+      topP: 0.8,
+      topK: 40,
       schema: tfSchema,
       prompt: `You are an expert educational content creator specializing in True/False assessments for Socratic learning.
 

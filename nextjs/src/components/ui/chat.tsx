@@ -23,6 +23,7 @@ interface ChatProps {
   handleSubmit: (e: FormEvent<HTMLFormElement>) => void
   isGenerating?: boolean
   stop?: () => void
+  append?: (message: { role: 'user' | 'assistant'; content: string }) => void
 }
 
 // Type definitions for tool invocations
@@ -361,13 +362,51 @@ function extractTFFromMessage(message: Message): TF | null {
   }
 }
 
+// Function to generate silent summary message for MCQ results
+function generateMCQSummary(mcq: MCQ, selectedOption: any, isCorrect: boolean): string {
+  const correctOption = mcq.options.find(opt => opt.isCorrect);
+  const selectedText = selectedOption?.text || 'Unknown';
+  const correctText = correctOption?.text || 'Unknown';
+  
+  return `SILENT_SUMMARY: User completed MCQ about "${mcq.topic}". Selected option ${selectedOption?.id?.toUpperCase()}: "${selectedText}". Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}. Correct answer was ${correctOption?.id?.toUpperCase()}: "${correctText}". Performance: ${isCorrect ? 'Strong understanding demonstrated' : 'Needs reinforcement of this concept'}.`;
+}
+
+// Function to generate silent summary message for TF results  
+function generateTFSummary(tf: TF, results: Array<{statementId: string, isCorrect: boolean}>): string {
+  const correctCount = results.filter(r => r.isCorrect).length;
+  const totalCount = results.length;
+  
+  const correctStatements = results
+    .filter(r => r.isCorrect)
+    .map(r => {
+      const statement = tf.statements.find(s => s.id === r.statementId);
+      return `${r.statementId}: "${statement?.text}"`;
+    });
+    
+  const incorrectStatements = results
+    .filter(r => !r.isCorrect)
+    .map(r => {
+      const statement = tf.statements.find(s => s.id === r.statementId);
+      return `${r.statementId}: "${statement?.text}" (Correct: ${statement?.isTrue ? 'True' : 'False'})`;
+    });
+  
+  const performanceAnalysis = correctCount === totalCount 
+    ? 'Excellent understanding' 
+    : correctCount >= totalCount * 0.67 
+    ? 'Good understanding with some gaps' 
+    : 'Significant misconceptions need addressing';
+    
+  return `SILENT_SUMMARY: User completed T/F about "${tf.topic}". Results: ${correctCount}/${totalCount} correct. Correct answers: [${correctStatements.join(', ')}]. Incorrect answers: [${incorrectStatements.join(', ')}]. Overall performance: ${performanceAnalysis}.`;
+}
+
 export function Chat({
   messages,
   input,
   handleInputChange,
   handleSubmit,
   isGenerating = false,
-  stop
+  stop,
+  append
 }: ChatProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { containerRef, endRef, scrollToBottom } = useScrollToBottom({
@@ -457,7 +496,7 @@ export function Chat({
             }}
           >
             <div className="space-y-4" style={{ scrollMarginBottom: '1rem' }}>
-              {messages.length === 0 && (
+              {messages.filter(m => !(m.role === 'user' && m.content.startsWith('SILENT_SUMMARY:'))).length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Start learning! Ask me anything you&apos;d like to know.</p>
@@ -465,6 +504,13 @@ export function Chat({
               )}
               
               {messages
+                .filter((message) => {
+                  // Filter out silent summary messages from UI display
+                  if (message.role === 'user' && message.content.startsWith('SILENT_SUMMARY:')) {
+                    return false;
+                  }
+                  return true;
+                })
                 .map((message) => {
                   // Only render user and assistant messages visually
                   if (message.role !== 'user' && message.role !== 'assistant') {
@@ -594,6 +640,15 @@ export function Chat({
                               mcq={mcqData}
                               onAnswer={(selectedOption, isCorrect) => {
                                 console.log('MCQ answered:', { selectedOption, isCorrect });
+                                
+                                // Generate and send silent summary message immediately
+                                if (append) {
+                                  const summary = generateMCQSummary(mcqData, selectedOption, isCorrect);
+                                  append({
+                                    role: 'user',
+                                    content: summary
+                                  });
+                                }
                               }}
                               className="my-2"
                             />
@@ -610,6 +665,15 @@ export function Chat({
                               tf={tfData}
                               onAnswer={(results) => {
                                 console.log('TF answered:', results);
+                                
+                                // Generate and send silent summary message immediately
+                                if (append) {
+                                  const summary = generateTFSummary(tfData, results);
+                                  append({
+                                    role: 'user',
+                                    content: summary
+                                  });
+                                }
                               }}
                               className="my-2"
                             />
