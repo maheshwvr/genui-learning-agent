@@ -41,7 +41,7 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
   };
 
   const getOptionStyles = (option: MCQOption) => {
-    const baseStyles = "w-full text-left p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-md";
+    const baseStyles = "w-full text-left p-2 rounded-lg border-2 transition-all duration-200 hover:shadow-md";
     
     if (!isSubmitted) {
       return cn(
@@ -109,37 +109,37 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
   };
 
   return (
-    <Card className={cn("my-4 max-w-2xl", className)}>
-      <CardHeader className="pb-4">
+    <Card className={cn("my-2 max-w-2xl", className)}>
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Quick Check</CardTitle>
+            <HelpCircle className="w-4 h-4 text-primary" />
+            <CardTitle className="text-base">Quick Check</CardTitle>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Grey topic box */}
-            <div className="px-3 py-1 rounded-md bg-gray-100 border border-gray-200">
+            <div className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200">
               <span className="text-xs text-gray-600 font-medium">Topic:</span>
-              <span className="text-sm text-gray-800 font-bold ml-1">{mcq.topic}</span>
+              <span className="text-xs text-gray-800 font-bold ml-1">{mcq.topic}</span>
             </div>
             {/* Difficulty-colored box showing difficulty level */}
             <div className={cn(
-              "px-3 py-1 rounded-md border",
+              "px-2 py-0.5 rounded-md border",
               getDifficultyBoxStyles().bg,
               getDifficultyBoxStyles().border
             )}>
-              <span className={cn("text-sm", getDifficultyBoxStyles().text)}>
+              <span className={cn("text-xs", getDifficultyBoxStyles().text)}>
                 {mcq.difficulty}
               </span>
             </div>
           </div>
         </div>
-        <CardDescription className="text-base font-medium text-foreground mt-2">
+        <CardDescription className="text-sm font-medium text-foreground mt-1">
           {mcq.question}
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {mcq.options.map((option) => (
           <button
             key={option.id}
@@ -148,8 +148,8 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
             disabled={isSubmitted}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="font-semibold text-lg w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm w-5 h-5 rounded-full border-2 border-current flex items-center justify-center text-xs">
                   {option.id.toUpperCase()}
                 </span>
                 <span className="text-sm">{option.text}</span>
@@ -160,12 +160,12 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
         ))}
         
         {!isSubmitted && (
-          <div className="pt-4">
+          <div className="pt-2">
             <Button 
               onClick={handleSubmit}
               disabled={!selectedOptionId}
               className="w-full"
-              size="lg"
+              size="sm"
             >
               Submit Answer
             </Button>
@@ -173,23 +173,23 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
         )}
         
         {showExplanation && (
-          <div className="mt-6 p-4 rounded-lg bg-muted/50 border">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
+            <div className="flex items-center gap-2 mb-1">
               {selectedOption?.isCorrect ? (
-                <CheckCircle className="w-5 h-5 text-green-600" />
+                <CheckCircle className="w-4 h-4 text-green-600" />
               ) : (
-                <XCircle className="w-5 h-5 text-red-600" />
+                <XCircle className="w-4 h-4 text-red-600" />
               )}
-              <span className="font-semibold">
+              <span className="font-semibold text-sm">
                 {selectedOption?.isCorrect ? 'Correct!' : 'Incorrect'}
               </span>
               {!selectedOption?.isCorrect && correctOption && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   (Correct answer: {correctOption.id.toUpperCase()})
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {mcq.explanation}
             </p>
           </div>

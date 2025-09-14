@@ -6,11 +6,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Bot, Send, User } from 'lucide-react'
-import { type FormEvent, useEffect, useRef } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { type Message } from 'ai'
 import ReactMarkdown from 'react-markdown'
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
 import { MCQComponent } from '@/components/ui/mcq-component'
+import { MCQLoading } from '@/components/ui/mcq-loading'
 import { type MCQ } from '@/lib/ai/lesson-schemas'
 
 interface ChatProps {
@@ -45,13 +46,15 @@ function safeJSONParse(jsonString: string): unknown {
     return null;
   }
   
+  // Don't try to parse if the JSON looks incomplete (common during streaming)
+  if (!trimmed.endsWith('}') && !trimmed.endsWith(']')) {
+    return null;
+  }
+  
   try {
     return JSON.parse(trimmed);
   } catch (error) {
-    // Only log actual JSON parsing errors, not plain text
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      console.error('JSON parsing failed:', error instanceof Error ? error.message : String(error));
-    }
+    // Silently return null for parsing errors during streaming
     return null;
   }
 }
@@ -86,51 +89,45 @@ function parseMCQFromContent(content: string): MCQ | null {
   }
   
   try {
-    // Look for MCQ marker format (new simple approach)
+    // Look for MCQ marker format (only if complete)
     const mcqMarkerMatch = content.match(/MCQ_DATA_START([\s\S]+?)MCQ_DATA_END/);
     if (mcqMarkerMatch && mcqMarkerMatch[1]) {
       const mcqData = safeJSONParse(mcqMarkerMatch[1].trim());
       if (mcqData && validateMCQ(mcqData)) {
-        console.log('✅ Parsed MCQ from marker');
         return mcqData as MCQ;
-      } else {
-        console.warn('❌ Invalid MCQ structure in marker data');
       }
     }
     
+    // Only attempt to parse other JSON formats if they look complete
     // Look for JSON string that contains MCQ data (legacy format)
     const jsonStringMatch = content.match(/\{\"type\":\"mcq\",\"data\":\{[\s\S]*?\}\}/);
-    if (jsonStringMatch && jsonStringMatch[0]) {
+    if (jsonStringMatch && jsonStringMatch[0] && jsonStringMatch[0].endsWith('}}')) {
       const toolResult = safeJSONParse(jsonStringMatch[0]) as { type?: string; data?: unknown } | null;
       if (toolResult && toolResult.type === 'mcq' && validateMCQ(toolResult.data)) {
-        console.log('✅ Parsed MCQ from JSON string');
         return toolResult.data as MCQ;
       }
     }
     
     // Look for tool call results in the content (legacy format)
     const toolCallMatch = content.match(/\{"type":"mcq","data":\{[\s\S]*?\}\}/);
-    if (toolCallMatch && toolCallMatch[0]) {
+    if (toolCallMatch && toolCallMatch[0] && toolCallMatch[0].endsWith('}}')) {
       const toolResult = safeJSONParse(toolCallMatch[0]) as { type?: string; data?: unknown } | null;
       if (toolResult && toolResult.type === 'mcq' && validateMCQ(toolResult.data)) {
-        console.log('✅ Parsed MCQ from tool call');
         return toolResult.data as MCQ;
       }
     }
 
-    // Also look for direct MCQ JSON structure
+    // Also look for direct MCQ JSON structure (only if complete)
     const mcqMatch = content.match(/\{[^}]*"question"[^}]*"options"[^}]*\}/);
-    if (mcqMatch && mcqMatch[0]) {
+    if (mcqMatch && mcqMatch[0] && mcqMatch[0].endsWith('}')) {
       const mcqData = safeJSONParse(mcqMatch[0]);
       if (mcqData && validateMCQ(mcqData)) {
-        console.log('✅ Parsed direct MCQ');
         return mcqData as MCQ;
       }
     }
     
     return null;
   } catch (error) {
-    console.error('Error parsing MCQ from content:', error);
     return null;
   }
 }
@@ -225,6 +222,32 @@ export function Chat({
     block: 'nearest',
     debounceMs: 100
   })
+
+  // State to track if we're currently generating an MCQ
+  const [isMCQGenerating, setIsMCQGenerating] = useState(false)
+
+  // Check if the AI is currently generating an MCQ by looking at the latest message
+  useEffect(() => {
+    if (isGenerating && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // If the last message is from assistant and contains partial MCQ data, show MCQ loading
+      if (lastMessage && lastMessage.role === 'assistant') {
+        const hasPartialMCQ = lastMessage.content.includes('MCQ_DATA_START') || 
+                             lastMessage.content.includes('quiz question') ||
+                             lastMessage.content.includes('multiple choice');
+        
+        if (hasPartialMCQ && !lastMessage.content.includes('MCQ_DATA_END')) {
+          setIsMCQGenerating(true);
+        } else if (lastMessage.content.includes('MCQ_DATA_END')) {
+          setIsMCQGenerating(false);
+        }
+      }
+    } else if (!isGenerating) {
+      // Reset when not generating
+      setIsMCQGenerating(false);
+    }
+  }, [messages, isGenerating])
 
   // Auto-focus the input when component mounts
   useEffect(() => {
@@ -406,6 +429,7 @@ export function Chat({
                               onAnswer={(selectedOption, isCorrect) => {
                                 console.log('MCQ answered:', { selectedOption, isCorrect });
                               }}
+                              className="my-2"
                             />
                           </div>
                         </div>
@@ -421,14 +445,18 @@ export function Chat({
                     <AvatarFallback>
                       <Bot className="w-4 h-4" />
                     </AvatarFallback>
-                    </Avatar>
-                  <div className="bg-muted rounded-lg px-4 py-2">
-                    <div className="flex gap-1">
+                  </Avatar>
+                  {isMCQGenerating ? (
+                    <div className="flex-1">
+                      <MCQLoading />
+                    </div>
+                  ) : (
+                    <div className="flex gap-1 py-2">
                       <div className="w-2 h-2 bg-current rounded-full animate-pulse" />
                       <div className="w-2 h-2 bg-current rounded-full animate-pulse [animation-delay:0.2s]" />
                       <div className="w-2 h-2 bg-current rounded-full animate-pulse [animation-delay:0.4s]" />
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
               
