@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
 
             setSuccess(true);
             setTimeout(() => {
-                router.push('/app');
+                router.push('/');
             }, 3000);
         } catch (err) {
             if (err instanceof Error) {
@@ -84,7 +84,7 @@ export default function ResetPasswordPage() {
 
                     <p className="text-gray-600 mb-8">
                         Your password has been successfully reset.
-                        You will be redirected to the app in a moment.
+                        You will be redirected to the homepage in a moment.
                     </p>
                 </div>
             </div>

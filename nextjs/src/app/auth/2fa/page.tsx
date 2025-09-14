@@ -27,7 +27,7 @@ export default function TwoFactorAuthPage() {
             if (aalError) throw aalError;
 
             if (aal.currentLevel === 'aal2' || aal.nextLevel === 'aal1') {
-                router.push('/app');
+                router.push('/');
                 return;
             }
 
@@ -43,7 +43,7 @@ export default function TwoFactorAuthPage() {
     }, [checkMFAStatus]);
 
     const handleVerified = () => {
-        router.push('/app');
+        router.push('/');
     };
 
     if (loading) {
