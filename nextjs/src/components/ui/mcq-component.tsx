@@ -79,15 +79,6 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
     return null;
   };
 
-  const getDifficultyColor = () => {
-    switch (mcq.difficulty) {
-      case 'easy': return 'text-green-600';
-      case 'medium': return 'text-yellow-600';
-      case 'hard': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
-
   const getDifficultyBoxStyles = () => {
     switch (mcq.difficulty) {
       case 'easy': 

@@ -22,8 +22,19 @@ interface ChatProps {
   stop?: () => void
 }
 
+// Type definitions for tool invocations
+interface CustomToolInvocation {
+  toolName: string
+  result?: string | { type: string; data: unknown }
+}
+
+interface CustomToolCall {
+  toolName: string
+  result?: string | { type: string; data: unknown }
+}
+
 // Helper function to safely parse JSON with error handling
-function safeJSONParse(jsonString: string): any | null {
+function safeJSONParse(jsonString: string): unknown {
   if (!jsonString || typeof jsonString !== 'string') {
     return null;
   }
@@ -46,16 +57,25 @@ function safeJSONParse(jsonString: string): any | null {
 }
 
 // Helper function to validate MCQ structure
-function validateMCQ(obj: any): obj is MCQ {
-  return obj && 
-    typeof obj.question === 'string' && 
-    Array.isArray(obj.options) && 
-    obj.options.length === 4 &&
-    obj.options.every((opt: any) => 
-      opt && 
-      typeof opt.id === 'string' && 
-      typeof opt.text === 'string' && 
-      typeof opt.isCorrect === 'boolean'
+function validateMCQ(obj: unknown): obj is MCQ {
+  return obj !== null && 
+    typeof obj === 'object' &&
+    obj !== undefined &&
+    'question' in obj &&
+    typeof (obj as Record<string, unknown>).question === 'string' && 
+    'options' in obj &&
+    Array.isArray((obj as Record<string, unknown>).options) && 
+    (obj as Record<string, unknown[]>).options.length === 4 &&
+    (obj as Record<string, unknown[]>).options.every((opt: unknown) => 
+      opt !== null && 
+      typeof opt === 'object' &&
+      opt !== undefined &&
+      'id' in opt &&
+      'text' in opt &&
+      'isCorrect' in opt &&
+      typeof (opt as Record<string, unknown>).id === 'string' && 
+      typeof (opt as Record<string, unknown>).text === 'string' && 
+      typeof (opt as Record<string, unknown>).isCorrect === 'boolean'
     );
 }
 
@@ -81,7 +101,7 @@ function parseMCQFromContent(content: string): MCQ | null {
     // Look for JSON string that contains MCQ data (legacy format)
     const jsonStringMatch = content.match(/\{\"type\":\"mcq\",\"data\":\{[\s\S]*?\}\}/);
     if (jsonStringMatch && jsonStringMatch[0]) {
-      const toolResult = safeJSONParse(jsonStringMatch[0]);
+      const toolResult = safeJSONParse(jsonStringMatch[0]) as { type?: string; data?: unknown } | null;
       if (toolResult && toolResult.type === 'mcq' && validateMCQ(toolResult.data)) {
         console.log('✅ Parsed MCQ from JSON string');
         return toolResult.data as MCQ;
@@ -91,7 +111,7 @@ function parseMCQFromContent(content: string): MCQ | null {
     // Look for tool call results in the content (legacy format)
     const toolCallMatch = content.match(/\{"type":"mcq","data":\{[\s\S]*?\}\}/);
     if (toolCallMatch && toolCallMatch[0]) {
-      const toolResult = safeJSONParse(toolCallMatch[0]);
+      const toolResult = safeJSONParse(toolCallMatch[0]) as { type?: string; data?: unknown } | null;
       if (toolResult && toolResult.type === 'mcq' && validateMCQ(toolResult.data)) {
         console.log('✅ Parsed MCQ from tool call');
         return toolResult.data as MCQ;
@@ -116,7 +136,7 @@ function parseMCQFromContent(content: string): MCQ | null {
 }
 
 // Helper function to extract MCQ from message object (including toolInvocations)
-function extractMCQFromMessage(message: any): MCQ | null {
+function extractMCQFromMessage(message: Message): MCQ | null {
   if (!message) {
     return null;
   }
@@ -127,9 +147,10 @@ function extractMCQFromMessage(message: any): MCQ | null {
     if (contentMCQ) return contentMCQ;
     
     // Check for toolInvocations property (AI SDK tool call format)
-    if (message.toolInvocations && Array.isArray(message.toolInvocations)) {
-      for (const invocation of message.toolInvocations) {
-        if (invocation && invocation.toolName === 'generateMCQ' && invocation.result) {
+    if ('toolInvocations' in message && Array.isArray((message as unknown as Record<string, unknown>).toolInvocations)) {
+      const toolInvocations = (message as unknown as Record<string, unknown>).toolInvocations as CustomToolInvocation[];
+      for (const invocation of toolInvocations) {
+        if (invocation && invocation.toolName === 'generateMCQ' && 'result' in invocation && invocation.result) {
           if (typeof invocation.result === 'string') {
             // Only attempt JSON parsing if the string looks like JSON
             const trimmed = invocation.result.trim();
@@ -146,7 +167,7 @@ function extractMCQFromMessage(message: any): MCQ | null {
               console.log('✅ MCQ from tool invocation text');
               return mcqFromText;
             }
-          } else if (invocation.result.type === 'mcq' && validateMCQ(invocation.result.data)) {
+          } else if (invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'mcq' && 'data' in invocation.result && validateMCQ(invocation.result.data)) {
             console.log('✅ MCQ from tool invocation data');
             return invocation.result.data as MCQ;
           }
@@ -155,9 +176,10 @@ function extractMCQFromMessage(message: any): MCQ | null {
     }
     
     // Check for experimental_toolCalls property (alternative format)
-    if (message.experimental_toolCalls && Array.isArray(message.experimental_toolCalls)) {
-      for (const toolCall of message.experimental_toolCalls) {
-        if (toolCall && toolCall.toolName === 'generateMCQ' && toolCall.result) {
+    if ('experimental_toolCalls' in message && Array.isArray((message as unknown as Record<string, unknown>).experimental_toolCalls)) {
+      const toolCalls = (message as unknown as Record<string, unknown>).experimental_toolCalls as CustomToolCall[];
+      for (const toolCall of toolCalls) {
+        if (toolCall && toolCall.toolName === 'generateMCQ' && 'result' in toolCall && toolCall.result) {
           if (typeof toolCall.result === 'string') {
             // Only attempt JSON parsing if the string looks like JSON
             const trimmed = toolCall.result.trim();
@@ -174,7 +196,7 @@ function extractMCQFromMessage(message: any): MCQ | null {
               console.log('✅ MCQ from experimental tool call text');
               return mcqFromText;
             }
-          } else if (toolCall.result.type === 'mcq' && validateMCQ(toolCall.result.data)) {
+          } else if (toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'mcq' && 'data' in toolCall.result && validateMCQ(toolCall.result.data)) {
             console.log('✅ MCQ from experimental tool call data');
             return toolCall.result.data as MCQ;
           }

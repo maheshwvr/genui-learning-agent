@@ -2,19 +2,24 @@ import { streamText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { LEARNING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
-import { detectUncertainty, extractTopic, assessDifficulty, generateMCQAction } from '@/lib/ai/lesson-actions';
+import { detectUncertainty, generateMCQAction } from '@/lib/ai/lesson-actions';
 
 export const runtime = 'edge';
 
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages }: { messages: Message[] } = await req.json();
     
     console.log('Received messages:', messages);
     console.log('API Key exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
     // Get the latest user message for uncertainty detection
-    const latestUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+    const latestUserMessage = messages.filter((m: Message) => m.role === 'user').pop();
     const shouldTriggerMCQ = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
 
     console.log('Should trigger MCQ:', shouldTriggerMCQ);
@@ -49,7 +54,7 @@ Example usage: If user says "I don't understand photosynthesis", first explain p
               const mcq = await generateMCQAction({
                 topic,
                 difficulty,
-                context: messages.slice(-3).map((m: any) => m.content).join('\n'),
+                context: messages.slice(-3).map((m: Message) => m.content).join('\n'),
                 userMessage: latestUserMessage?.content || ''
               });
 

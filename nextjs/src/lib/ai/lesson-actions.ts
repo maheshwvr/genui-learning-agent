@@ -2,9 +2,13 @@
 
 import { generateObject } from 'ai';
 import { google } from '@ai-sdk/google';
-import { z } from 'zod';
 import { mcqSchema, type MCQ } from './lesson-schemas';
 import { MCQ_GENERATION_PROMPT } from './prompts';
+
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
 // Action to generate MCQ content
 export async function generateMCQAction(params: {
@@ -70,7 +74,7 @@ export async function detectUncertainty(message: string): Promise<boolean> {
 }
 
 // Helper function to extract topic from conversation
-export async function extractTopic(messages: any[]): Promise<string> {
+export async function extractTopic(messages: Message[]): Promise<string> {
   // Simple topic extraction - in a real app, you might use more sophisticated NLP
   const recentMessages = messages.slice(-3);
   const content = recentMessages
@@ -95,7 +99,7 @@ export async function extractTopic(messages: any[]): Promise<string> {
 }
 
 // Helper function to assess difficulty level
-export async function assessDifficulty(messages: any[]): Promise<'easy' | 'medium' | 'hard'> {
+export async function assessDifficulty(messages: Message[]): Promise<'easy' | 'medium' | 'hard'> {
   const recentMessages = messages.slice(-5);
   const content = recentMessages.map(m => m.content).join(' ').toLowerCase();
 
