@@ -18,12 +18,31 @@ export const mcqSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).describe("Question difficulty level")
 });
 
+// Schema for individual True/False statements
+export const tfStatementSchema = z.object({
+  id: z.string().describe("Statement identifier (1, 2, 3)"),
+  text: z.string().describe("The statement text to evaluate"),
+  isTrue: z.boolean().describe("Whether the statement is true or false"),
+  explanation: z.string().describe("Brief explanation for the correct answer")
+});
+
+// Schema for True/False components
+export const tfSchema = z.object({
+  topic: z.string().describe("Learning topic this T/F covers"),
+  statements: z.array(tfStatementSchema)
+    .length(3)
+    .describe("Array of exactly 3 true/false statements"),
+  difficulty: z.enum(['easy', 'medium', 'hard']).describe("Difficulty level"),
+  overallExplanation: z.string().describe("Summary explanation after all answers")
+});
+
 // Schema for lesson content structure
 export const lessonContentSchema = z.object({
-  type: z.enum(['text', 'mcq']).describe("Type of content block"),
+  type: z.enum(['text', 'mcq', 'tf']).describe("Type of content block"),
   content: z.union([
     z.string().describe("Text content for text blocks"),
-    mcqSchema.describe("MCQ data for question blocks")
+    mcqSchema.describe("MCQ data for question blocks"),
+    tfSchema.describe("True/False data for T/F blocks")
   ])
 });
 
@@ -37,6 +56,8 @@ export const uncertaintyIndicatorsSchema = z.object({
 // Type exports for TypeScript
 export type MCQOption = z.infer<typeof mcqOptionSchema>;
 export type MCQ = z.infer<typeof mcqSchema>;
+export type TFStatement = z.infer<typeof tfStatementSchema>;
+export type TF = z.infer<typeof tfSchema>;
 export type LessonContent = z.infer<typeof lessonContentSchema>;
 export type UncertaintyIndicators = z.infer<typeof uncertaintyIndicatorsSchema>;
 
@@ -47,6 +68,15 @@ export const validateMCQ = (data: unknown): MCQ => {
 
 export const validateMCQOption = (data: unknown): MCQOption => {
   return mcqOptionSchema.parse(data);
+};
+
+// Validation helpers for T/F
+export const validateTF = (data: unknown): TF => {
+  return tfSchema.parse(data);
+};
+
+export const validateTFStatement = (data: unknown): TFStatement => {
+  return tfStatementSchema.parse(data);
 };
 
 // Helper function to create a properly formatted MCQ
@@ -75,4 +105,34 @@ export const createMCQ = (
 export const validateMCQCorrectness = (mcq: MCQ): boolean => {
   const correctOptions = mcq.options.filter(option => option.isCorrect);
   return correctOptions.length === 1;
+};
+
+// Helper function to create a properly formatted T/F component
+export const createTF = (
+  topic: string,
+  statements: Omit<TFStatement, 'id'>[],
+  overallExplanation: string,
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+): TF => {
+  const formattedStatements = statements.map((statement, index) => ({
+    ...statement,
+    id: (index + 1).toString() // '1', '2', '3'
+  }));
+
+  return {
+    topic,
+    statements: formattedStatements,
+    difficulty,
+    overallExplanation
+  };
+};
+
+// Helper function to validate T/F statement count and structure
+export const validateTFCorrectness = (tf: TF): boolean => {
+  return tf.statements.length === 3 && 
+         tf.statements.every(statement => 
+           typeof statement.isTrue === 'boolean' && 
+           statement.text.length > 0 && 
+           statement.explanation.length > 0
+         );
 };

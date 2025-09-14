@@ -132,7 +132,7 @@ export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HelpCircle className="w-4 h-4 text-primary" />
-            <CardTitle className="text-base">Quick Check</CardTitle>
+            <CardTitle className="text-base">Quick Check: MCQ</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {/* Grey topic box */}

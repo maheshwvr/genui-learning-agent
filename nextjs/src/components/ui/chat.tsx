@@ -12,7 +12,9 @@ import ReactMarkdown from 'react-markdown'
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
 import { MCQComponent } from '@/components/ui/mcq-component'
 import { MCQLoading } from '@/components/ui/mcq-loading'
-import { type MCQ } from '@/lib/ai/lesson-schemas'
+import { TFComponent } from '@/components/ui/tf-component'
+import { TFLoading } from '@/components/ui/tf-loading'
+import { type MCQ, type TF } from '@/lib/ai/lesson-schemas'
 
 interface ChatProps {
   messages: Message[]
@@ -80,6 +82,81 @@ function validateMCQ(obj: unknown): obj is MCQ {
       typeof (opt as Record<string, unknown>).text === 'string' && 
       typeof (opt as Record<string, unknown>).isCorrect === 'boolean'
     );
+}
+
+// Helper function to validate TF structure
+function validateTF(obj: unknown): obj is TF {
+  return obj !== null && 
+    typeof obj === 'object' &&
+    obj !== undefined &&
+    'topic' in obj &&
+    typeof (obj as Record<string, unknown>).topic === 'string' && 
+    'statements' in obj &&
+    Array.isArray((obj as Record<string, unknown>).statements) && 
+    (obj as Record<string, unknown[]>).statements.length === 3 &&
+    (obj as Record<string, unknown[]>).statements.every((stmt: unknown) => 
+      stmt !== null && 
+      typeof stmt === 'object' &&
+      stmt !== undefined &&
+      'id' in stmt &&
+      'text' in stmt &&
+      'isTrue' in stmt &&
+      'explanation' in stmt &&
+      typeof (stmt as Record<string, unknown>).id === 'string' && 
+      typeof (stmt as Record<string, unknown>).text === 'string' && 
+      typeof (stmt as Record<string, unknown>).isTrue === 'boolean' &&
+      typeof (stmt as Record<string, unknown>).explanation === 'string'
+    );
+}
+
+// Helper function to detect if message content contains TF data
+function parseTFFromContent(content: string): TF | null {
+  if (!content || typeof content !== 'string') {
+    return null;
+  }
+  
+  try {
+    // Look for TF marker format (only if complete)
+    const tfMarkerMatch = content.match(/TF_DATA_START([\s\S]+?)TF_DATA_END/);
+    if (tfMarkerMatch && tfMarkerMatch[1]) {
+      const tfData = safeJSONParse(tfMarkerMatch[1].trim());
+      if (tfData && validateTF(tfData)) {
+        return tfData as TF;
+      }
+    }
+    
+    // Only attempt to parse other JSON formats if they look complete
+    // Look for JSON string that contains TF data (legacy format)
+    const jsonStringMatch = content.match(/\{\"type\":\"tf\",\"data\":\{[\s\S]*?\}\}/);
+    if (jsonStringMatch && jsonStringMatch[0] && jsonStringMatch[0].endsWith('}}')) {
+      const toolResult = safeJSONParse(jsonStringMatch[0]) as { type?: string; data?: unknown } | null;
+      if (toolResult && toolResult.type === 'tf' && validateTF(toolResult.data)) {
+        return toolResult.data as TF;
+      }
+    }
+    
+    // Look for tool call results in the content (legacy format)
+    const toolCallMatch = content.match(/\{"type":"tf","data":\{[\s\S]*?\}\}/);
+    if (toolCallMatch && toolCallMatch[0] && toolCallMatch[0].endsWith('}}')) {
+      const toolResult = safeJSONParse(toolCallMatch[0]) as { type?: string; data?: unknown } | null;
+      if (toolResult && toolResult.type === 'tf' && validateTF(toolResult.data)) {
+        return toolResult.data as TF;
+      }
+    }
+
+    // Also look for direct TF JSON structure (only if complete)
+    const tfMatch = content.match(/\{[^}]*"topic"[^}]*"statements"[^}]*\}/);
+    if (tfMatch && tfMatch[0] && tfMatch[0].endsWith('}')) {
+      const tfData = safeJSONParse(tfMatch[0]);
+      if (tfData && validateTF(tfData)) {
+        return tfData as TF;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
 }
 
 // Helper function to detect if message content contains MCQ data
@@ -208,6 +285,82 @@ function extractMCQFromMessage(message: Message): MCQ | null {
   }
 }
 
+// Helper function to extract TF from message object (including toolInvocations)
+function extractTFFromMessage(message: Message): TF | null {
+  if (!message) {
+    return null;
+  }
+  
+  try {
+    // Check message content first
+    const contentTF = parseTFFromContent(message.content || '');
+    if (contentTF) return contentTF;
+    
+    // Check for toolInvocations property (AI SDK tool call format)
+    if ('toolInvocations' in message && Array.isArray((message as unknown as Record<string, unknown>).toolInvocations)) {
+      const toolInvocations = (message as unknown as Record<string, unknown>).toolInvocations as CustomToolInvocation[];
+      for (const invocation of toolInvocations) {
+        if (invocation && invocation.toolName === 'generateTF' && 'result' in invocation && invocation.result) {
+          if (typeof invocation.result === 'string') {
+            // Only attempt JSON parsing if the string looks like JSON
+            const trimmed = invocation.result.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+              const parsed = safeJSONParse(trimmed);
+              if (parsed && validateTF(parsed)) {
+                console.log('✅ TF from tool invocation JSON');
+                return parsed as TF;
+              }
+            }
+            // If it's a plain text response, it might contain TF markers
+            const tfFromText = parseTFFromContent(invocation.result);
+            if (tfFromText) {
+              console.log('✅ TF from tool invocation text');
+              return tfFromText;
+            }
+          } else if (invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'tf' && 'data' in invocation.result && validateTF(invocation.result.data)) {
+            console.log('✅ TF from tool invocation data');
+            return invocation.result.data as TF;
+          }
+        }
+      }
+    }
+    
+    // Check for experimental_toolCalls property (alternative format)
+    if ('experimental_toolCalls' in message && Array.isArray((message as unknown as Record<string, unknown>).experimental_toolCalls)) {
+      const toolCalls = (message as unknown as Record<string, unknown>).experimental_toolCalls as CustomToolCall[];
+      for (const toolCall of toolCalls) {
+        if (toolCall && toolCall.toolName === 'generateTF' && 'result' in toolCall && toolCall.result) {
+          if (typeof toolCall.result === 'string') {
+            // Only attempt JSON parsing if the string looks like JSON
+            const trimmed = toolCall.result.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+              const parsed = safeJSONParse(trimmed);
+              if (parsed && validateTF(parsed)) {
+                console.log('✅ TF from experimental tool call JSON');
+                return parsed as TF;
+              }
+            }
+            // If it's a plain text response, it might contain TF markers
+            const tfFromText = parseTFFromContent(toolCall.result);
+            if (tfFromText) {
+              console.log('✅ TF from experimental tool call text');
+              return tfFromText;
+            }
+          } else if (toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'tf' && 'data' in toolCall.result && validateTF(toolCall.result.data)) {
+            console.log('✅ TF from experimental tool call data');
+            return toolCall.result.data as TF;
+          }
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting TF from message:', error);
+    return null;
+  }
+}
+
 export function Chat({
   messages,
   input,
@@ -223,29 +376,35 @@ export function Chat({
     debounceMs: 100
   })
 
-  // State to track if we're currently generating an MCQ
-  const [isMCQGenerating, setIsMCQGenerating] = useState(false)
+  // State to track if we're currently generating an assessment (MCQ or TF)
+  const [assessmentGeneratingType, setAssessmentGeneratingType] = useState<'mcq' | 'tf' | null>(null)
 
-  // Check if the AI is currently generating an MCQ by looking at the latest message
+  // Check if the AI is currently generating an assessment by looking at the latest message
   useEffect(() => {
     if (isGenerating && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
-      // If the last message is from assistant and contains partial MCQ data, show MCQ loading
+      // If the last message is from assistant and contains partial assessment data, show loading
       if (lastMessage && lastMessage.role === 'assistant') {
         const hasPartialMCQ = lastMessage.content.includes('MCQ_DATA_START') || 
                              lastMessage.content.includes('quiz question') ||
                              lastMessage.content.includes('multiple choice');
         
+        const hasPartialTF = lastMessage.content.includes('TF_DATA_START') || 
+                            lastMessage.content.includes('True/False') ||
+                            lastMessage.content.includes('true/false statements');
+        
         if (hasPartialMCQ && !lastMessage.content.includes('MCQ_DATA_END')) {
-          setIsMCQGenerating(true);
-        } else if (lastMessage.content.includes('MCQ_DATA_END')) {
-          setIsMCQGenerating(false);
+          setAssessmentGeneratingType('mcq');
+        } else if (hasPartialTF && !lastMessage.content.includes('TF_DATA_END')) {
+          setAssessmentGeneratingType('tf');
+        } else if (lastMessage.content.includes('MCQ_DATA_END') || lastMessage.content.includes('TF_DATA_END')) {
+          setAssessmentGeneratingType(null);
         }
       }
     } else if (!isGenerating) {
       // Reset when not generating
-      setIsMCQGenerating(false);
+      setAssessmentGeneratingType(null);
     }
   }, [messages, isGenerating])
 
@@ -320,32 +479,39 @@ export function Chat({
                   console.log('Full message object:', JSON.stringify(message, null, 2));
                   console.log('=== END MESSAGE STRUCTURE ===');
                   
-                  // Check if this message contains an MCQ (with error handling)
+                  // Check if this message contains an MCQ or TF (with error handling)
                   let mcqData: MCQ | null = null;
+                  let tfData: TF | null = null;
                   try {
                     mcqData = message.role === 'assistant' ? extractMCQFromMessage(message) : null;
+                    tfData = message.role === 'assistant' ? extractTFFromMessage(message) : null;
                   } catch (error) {
-                    console.error('Error extracting MCQ from message:', error);
+                    console.error('Error extracting MCQ/TF from message:', error);
                     mcqData = null;
+                    tfData = null;
                   }
                   
-                  // Calculate cleaned content (content after removing MCQ markers)
+                  // Calculate cleaned content (content after removing MCQ/TF markers)
                   let cleanedContent = message.content;
-                  if (mcqData && message.role === 'assistant') {
+                  if ((mcqData || tfData) && message.role === 'assistant') {
                     cleanedContent = message.content
                       .replace(/MCQ_DATA_START[\s\S]*?MCQ_DATA_END/g, '')
+                      .replace(/TF_DATA_START[\s\S]*?TF_DATA_END/g, '')
                       .replace(/\{"type":"mcq"[\s\S]*?\}/g, '')
+                      .replace(/\{"type":"tf"[\s\S]*?\}/g, '')
                       .replace(/\{[^}]*"question"[^}]*\}/g, '')
+                      .replace(/\{[^}]*"topic"[^}]*"statements"[^}]*\}/g, '')
                       .trim();
                   }
                   
                   console.log('MCQ Data found:', !!mcqData);
+                  console.log('TF Data found:', !!tfData);
                   console.log('Original content length:', message.content?.length || 0);
                   console.log('Cleaned content length:', cleanedContent?.length || 0);
                   console.log('Cleaned content:', cleanedContent);
                   
-                  // If message has MCQ but no meaningful text content, don't render the message box
-                  const shouldRenderMessageBox = message.role === 'user' || !mcqData || (cleanedContent && cleanedContent.length > 0);
+                  // If message has MCQ/TF but no meaningful text content, don't render the message box
+                  const shouldRenderMessageBox = message.role === 'user' || (!mcqData && !tfData) || (cleanedContent && cleanedContent.length > 0);
                   
                   console.log('Should render message box:', shouldRenderMessageBox);
                   
@@ -434,6 +600,22 @@ export function Chat({
                           </div>
                         </div>
                       )}
+                      
+                      {/* Render TF component if detected */}
+                      {tfData && (
+                        <div className="flex justify-start">
+                          <div className="w-8" /> {/* Spacer for alignment */}
+                          <div className="max-w-[80%]">
+                            <TFComponent 
+                              tf={tfData}
+                              onAnswer={(results) => {
+                                console.log('TF answered:', results);
+                              }}
+                              className="my-2"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -446,9 +628,13 @@ export function Chat({
                       <Bot className="w-4 h-4" />
                     </AvatarFallback>
                   </Avatar>
-                  {isMCQGenerating ? (
+                  {assessmentGeneratingType === 'mcq' ? (
                     <div className="flex-1">
                       <MCQLoading />
+                    </div>
+                  ) : assessmentGeneratingType === 'tf' ? (
+                    <div className="flex-1">
+                      <TFLoading />
                     </div>
                   ) : (
                     <div className="flex gap-1 py-2">

@@ -2,7 +2,7 @@ import { streamText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { LEARNING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
-import { detectUncertainty, generateMCQAction } from '@/lib/ai/lesson-actions';
+import { detectUncertainty, generateMCQAction, generateTFAction } from '@/lib/ai/lesson-actions';
 
 export const runtime = 'edge';
 
@@ -20,9 +20,9 @@ export async function POST(req: Request) {
 
     // Get the latest user message for uncertainty detection
     const latestUserMessage = messages.filter((m: Message) => m.role === 'user').pop();
-    const shouldTriggerMCQ = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
+    const shouldTriggerAssessment = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
 
-    console.log('Should trigger MCQ:', shouldTriggerMCQ);
+    console.log('Should trigger assessment:', shouldTriggerAssessment);
     console.log('Latest user message:', latestUserMessage?.content);
     console.log('Messages count:', messages.length);
 
@@ -31,28 +31,42 @@ export async function POST(req: Request) {
       messages,
       system: `${LEARNING_SYSTEM_PROMPT}
 
-You have access to a generateMCQ tool that creates multiple choice questions. Use this tool when:
-- The user seems uncertain, confused, or asks "I don't understand"
-- After explaining complex concepts that would benefit from practice questions
-- When a user asks questions indicating they need reinforcement
+You have access to TWO assessment tools that create interactive learning content:
 
-CRITICAL MCQ INSTRUCTIONS:
-1. ALWAYS provide a contextual text explanation BEFORE generating any MCQ
+1. **generateMCQ** - Creates multiple choice questions
+2. **generateTF** - Creates True/False statements  
+
+## ASSESSMENT SELECTION STRATEGY:
+
+**Use generateMCQ (PREFERRED) when:**
+- Testing application of concepts with multiple valid approaches
+- Choosing between different methods or solutions
+- Comparing and contrasting multiple options
+- Assessment of understanding across broader topics
+- When both MCQ and T/F would work equally well (slight MCQ preference)
+
+**Use generateTF when:**
+- Clarifying common misconceptions  
+- Verifying specific factual understanding
+- Exploring nuanced aspects of a concept with subtle distinctions
+- Addressing yes/no conceptual questions
+- Breaking down complex topics into discrete true/false elements
+
+## CRITICAL ASSESSMENT INSTRUCTIONS:
+1. ALWAYS provide a contextual text explanation BEFORE generating any assessment
 2. This explanation should either:
    - Provide a brief educational overview of the topic to guide the user toward understanding
-   - Introduce the question with context about why it's being asked and how it applies
-   - Give background information that will help the user approach the question thoughtfully
+   - Introduce the assessment with context about why it's being asked and how it applies
+   - Give background information that will help the user approach the assessment thoughtfully
 
-3. Your text response should stand alone as valuable educational content, even without the MCQ
-4. The explanation should prepare the user to engage meaningfully with the question
+3. Your text response should stand alone as valuable educational content, even without the assessment
+4. The explanation should prepare the user to engage meaningfully with the assessment
 
 IMPORTANT: If the user's message contains uncertainty indicators like "don't understand", "confused", "not sure", "what is", "explain", etc., you SHOULD:
 1. First provide a clear, contextual explanation of the topic
-2. Then use the generateMCQ tool to create a practice question that builds on that explanation
+2. Then use either generateMCQ or generateTF tool to create practice content that builds on that explanation
 
-Example usage: If user says "I don't understand photosynthesis":
-1. Provide text: "Photosynthesis is the process by which plants convert sunlight into energy. Let me break this down: plants use chlorophyll to capture light energy, combine it with carbon dioxide from the air and water from their roots, and create glucose (sugar) for energy while releasing oxygen as a byproduct. This process is essential for life on Earth as it produces the oxygen we breathe. Now let's test your understanding with a question about this vital process:"
-2. Then call generateMCQ with topic="photosynthesis"`,
+Choose the assessment type that best serves the specific learning moment. When in doubt, prefer MCQ.`,
       tools: {
         generateMCQ: tool({
           description: 'Generate a multiple choice question to help reinforce learning and test understanding',
@@ -82,6 +96,37 @@ Example usage: If user says "I don't understand photosynthesis":
             } catch (error) {
               console.error('Error generating MCQ:', error);
               return 'I had trouble creating a quiz question, but let\'s continue our discussion!';
+            }
+          }
+        }),
+        generateTF: tool({
+          description: 'Generate True/False statements to clarify misconceptions and explore nuanced understanding',
+          parameters: z.object({
+            topic: z.string().describe('The main topic for the T/F statements'),
+            difficulty: z.enum(['easy', 'medium', 'hard']).describe('Difficulty level'),
+            reason: z.string().describe('Why these T/F statements would be helpful')
+          }),
+          execute: async ({ topic, difficulty, reason }) => {
+            console.log('T/F Tool called! Topic:', topic, 'Difficulty:', difficulty, 'Reason:', reason);
+            
+            try {
+              const tf = await generateTFAction({
+                topic,
+                difficulty,
+                context: messages.slice(-3).map((m: Message) => m.content).join('\n'),
+                userMessage: latestUserMessage?.content || ''
+              });
+
+              if (tf) {
+                // Return a marker that can be easily found and parsed
+                const tfMarker = `TF_DATA_START${JSON.stringify(tf)}TF_DATA_END`;
+                return `Let's explore some key aspects of ${topic} through these True/False statements:\n\n${tfMarker}`;
+              } else {
+                return 'I had trouble creating True/False statements, but let\'s continue our discussion!';
+              }
+            } catch (error) {
+              console.error('Error generating T/F:', error);
+              return 'I had trouble creating True/False statements, but let\'s continue our discussion!';
             }
           }
         })
