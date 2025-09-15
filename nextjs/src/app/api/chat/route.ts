@@ -3,6 +3,9 @@ import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { LEARNING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { detectUncertainty, generateMCQAction, generateTFAction } from '@/lib/ai/lesson-actions';
+import { processLessonMaterials } from '@/lib/ai/gemini-files';
+import { getCourseMaterialsByTopics } from '@/lib/supabase/materials';
+import { createServerLessonManager } from '@/lib/supabase/lessons';
 
 export const runtime = 'edge';
 
@@ -20,6 +23,35 @@ export async function POST(req: Request) {
     console.log('Lesson ID:', lessonId);
     console.log('API Key exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
+    // Get lesson context if lessonId is provided
+    let materialsSystemPrompt = ''
+    let lessonMaterials: any[] = []
+    
+    if (lessonId) {
+      try {
+        const lessonManager = await createServerLessonManager()
+        const lesson = await lessonManager.getLesson(lessonId)
+        
+        if (lesson && lesson.course_id && lesson.topic_selection) {
+          console.log('Processing lesson materials for course:', lesson.course_id, 'topics:', lesson.topic_selection)
+          
+          // Get materials based on course and topic selection
+          lessonMaterials = await getCourseMaterialsByTopics(lesson.course_id, lesson.topic_selection)
+          
+          if (lessonMaterials.length > 0) {
+            console.log(`Found ${lessonMaterials.length} materials for lesson context`)
+            const materialResult = await processLessonMaterials(lessonMaterials)
+            materialsSystemPrompt = materialResult.systemPromptAddition
+            
+            console.log('Materials system prompt addition:', materialsSystemPrompt.substring(0, 200) + '...')
+          }
+        }
+      } catch (error) {
+        console.error('Error processing lesson materials:', error)
+        // Continue without materials if there's an error
+      }
+    }
+
     // Get the latest user message for uncertainty detection
     const latestUserMessage = messages.filter((m: Message) => m.role === 'user').pop();
     const shouldTriggerAssessment = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
@@ -34,7 +66,7 @@ export async function POST(req: Request) {
       topP: 0.8,
       topK: 40,
       messages,
-      system: `${LEARNING_SYSTEM_PROMPT}
+      system: `${LEARNING_SYSTEM_PROMPT}${materialsSystemPrompt}
 
 You have access to TWO assessment tools that create interactive learning content:
 

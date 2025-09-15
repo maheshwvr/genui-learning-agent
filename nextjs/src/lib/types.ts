@@ -36,6 +36,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      courses: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           id: string
@@ -44,6 +71,7 @@ export type Database = {
           messages: Json
           course_id: string | null
           lesson_type: string
+          topic_selection: string[]
           created_at: string
           updated_at: string
         }
@@ -54,6 +82,7 @@ export type Database = {
           messages?: Json
           course_id?: string | null
           lesson_type?: string
+          topic_selection?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -64,6 +93,46 @@ export type Database = {
           messages?: Json
           course_id?: string | null
           lesson_type?: string
+          topic_selection?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      materials: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          mime_type: string
+          topic_tags: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          mime_type: string
+          topic_tags?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          mime_type?: string
+          topic_tags?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -215,6 +284,34 @@ export type CompositeTypes<
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+// Course and Materials Types
+export interface Course {
+  id: string
+  user_id: string
+  name: string
+  description?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Material {
+  id: string
+  user_id: string
+  course_id: string
+  file_name: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  topic_tags: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Topic {
+  name: string
+  materialCount: number
+}
+
 // Chat and Lesson Types
 export interface ChatMessage {
   id: string
@@ -249,9 +346,19 @@ export interface Lesson {
   messages: ChatMessage[]
   course_id?: string | null
   lesson_type: 'general' | 'pre-exam' | 'post-lecture'
+  topic_selection: string[]
   created_at: string
   updated_at: string
 }
+
+// Database type exports
+export type CourseRow = Tables<'courses'>
+export type CourseInsert = TablesInsert<'courses'>
+export type CourseUpdate = TablesUpdate<'courses'>
+
+export type MaterialRow = Tables<'materials'>
+export type MaterialInsert = TablesInsert<'materials'>
+export type MaterialUpdate = TablesUpdate<'materials'>
 
 export type LessonInsert = TablesInsert<'lessons'>
 export type LessonUpdate = TablesUpdate<'lessons'>

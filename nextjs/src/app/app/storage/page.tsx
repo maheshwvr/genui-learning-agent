@@ -1,330 +1,367 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useCallback } from 'react';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, Download, Share2, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Copy } from 'lucide-react';
-import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
-import { FileObject } from '@supabase/storage-js';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus } from 'lucide-react';
+import { CourseSelector } from '@/components/ui/course-selector';
 
-export default function FileManagementPage() {
+interface Material {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  topic_tags: string[];
+  created_at: string;
+}
+
+interface Course {
+  id: string;
+  name: string;
+  description?: string | null;
+  materialCount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function MaterialsManagementPage() {
     const { user } = useGlobal();
-    const [files, setFiles] = useState<FileObject[]>([]);
+    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+    const [materials, setMaterials] = useState<Material[]>([]);
+    const [topics, setTopics] = useState<{name: string; materialCount: number}[]>([]);
     const [uploading, setUploading] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [shareUrl, setShareUrl] = useState('');
-    const [selectedFile, setSelectedFile] = useState<string | null>(null);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [fileToDelete, setFileToDelete] = useState<string | null>(null);
-    const [showCopiedMessage, setShowCopiedMessage] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
+    const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const [uploadTopics, setUploadTopics] = useState<string>('');
+    const [fileToUpload, setFileToUpload] = useState<File | null>(null);
 
-    const loadFiles = useCallback(async () => {
+    const loadCourseMaterials = useCallback(async (courseId: string) => {
         try {
             setLoading(true);
             setError('');
-            const supabase = await createSPASassClient();
-            const { data, error } = await supabase.getFiles(user!.id);
-
-            if (error) throw error;
-            setFiles(data || []);
+            
+            const response = await fetch(`/api/courses/${courseId}/materials`);
+            if (response.ok) {
+                const data = await response.json();
+                setMaterials(data.materials || []);
+                setTopics(data.topics || []);
+            } else {
+                setError('Failed to load course materials');
+            }
         } catch (err) {
-            setError('Failed to load files');
-            console.error('Error loading files:', err);
+            setError('Failed to load course materials');
+            console.error('Error loading materials:', err);
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, []);
 
-    useEffect(() => {
-        if (user?.id) {
-            loadFiles();
+    const handleCourseSelect = (course: Course) => {
+        setSelectedCourse(course);
+        if (course) {
+            loadCourseMaterials(course.id);
+        } else {
+            setMaterials([]);
+            setTopics([]);
         }
-    }, [user, loadFiles]);
+    };
 
-    const handleFileUpload = useCallback(async (file: File) => {
+    const handleFileUpload = useCallback(async () => {
+        if (!fileToUpload || !selectedCourse) return;
+
         try {
             setUploading(true);
             setError('');
 
-            console.log(user)
+            const formData = new FormData();
+            formData.append('file', fileToUpload);
+            
+            const parsedTopics = uploadTopics
+                .split(',')
+                .map(t => t.trim())
+                .filter(t => t.length > 0);
+            
+            formData.append('topicTags', JSON.stringify(parsedTopics));
 
-            const supabase = await createSPASassClient();
-            const { error } = await supabase.uploadFile(user!.id!, file.name, file);
+            const response = await fetch(`/api/courses/${selectedCourse.id}/materials`, {
+                method: 'POST',
+                body: formData,
+            });
 
-            if (error) throw error;
-
-            await loadFiles();
-            setSuccess('File uploaded successfully');
+            if (response.ok) {
+                await loadCourseMaterials(selectedCourse.id);
+                setSuccess('Material uploaded successfully');
+                setFileToUpload(null);
+                setUploadTopics('');
+                setShowUploadDialog(false);
+            } else {
+                const data = await response.json();
+                setError(data.error || 'Failed to upload material');
+            }
         } catch (err) {
-            setError('Failed to upload file');
-            console.error('Error uploading file:', err);
+            setError('Failed to upload material');
+            console.error('Error uploading material:', err);
         } finally {
             setUploading(false);
         }
-    }, [user, loadFiles]);
+    }, [fileToUpload, selectedCourse, uploadTopics, loadCourseMaterials]);
 
-
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const fileList = event.target.files;
-        if (!fileList || fileList.length === 0) return;
-        handleFileUpload(fileList[0]);
-        event.target.value = '';
-    };
-
-
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) {
-            handleFileUpload(files[0]);
-        }
-    }, [handleFileUpload]);
-
-
-    const handleDragEnter = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    }, []);
-
-    const handleDragLeave = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    }, []);
-
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, []);
-
-
-    const handleDownload = async (filename: string) => {
-        try {
-            setError('');
-            const supabase = await createSPASassClient();
-            const { data, error } = await supabase.shareFile(user!.id!, filename, 60, true);
-
-            if (error) throw error;
-
-            window.open(data.signedUrl, '_blank');
-        } catch (err) {
-            setError('Failed to download file');
-            console.error('Error downloading file:', err);
-        }
-    };
-
-    const handleShare = async (filename: string) => {
-        try {
-            setError('');
-            const supabase = await createSPASassClient();
-            const { data, error } = await supabase.shareFile(user!.id!, filename, 24 * 60 * 60);
-
-            if (error) throw error;
-
-            setShareUrl(data.signedUrl);
-            setSelectedFile(filename);
-        } catch (err) {
-            setError('Failed to generate share link');
-            console.error('Error sharing file:', err);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!fileToDelete) return;
+    const deleteMaterial = async (materialId: string) => {
+        if (!selectedCourse) return;
 
         try {
-            setError('');
-            const supabase = await createSPASassClient();
-            const { error } = await supabase.deleteFile(user!.id!, fileToDelete);
+            const response = await fetch(`/api/courses/${selectedCourse.id}/materials?materialId=${materialId}`, {
+                method: 'DELETE',
+            });
 
-            if (error) throw error;
-
-            await loadFiles();
-            setSuccess('File deleted successfully');
+            if (response.ok) {
+                await loadCourseMaterials(selectedCourse.id);
+                setSuccess('Material deleted successfully');
+            } else {
+                setError('Failed to delete material');
+            }
         } catch (err) {
-            setError('Failed to delete file');
-            console.error('Error deleting file:', err);
-        } finally {
-            setShowDeleteDialog(false);
-            setFileToDelete(null);
+            setError('Failed to delete material');
+            console.error('Error deleting material:', err);
         }
     };
 
-    const copyToClipboard = async (text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setShowCopiedMessage(true);
-            setTimeout(() => setShowCopiedMessage(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            setError('Failed to copy to clipboard');
-        }
+    const formatFileSize = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
     return (
-        <div className="space-y-6 p-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>File Management</CardTitle>
-                    <CardDescription>Upload, download, and share your files</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {error && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertCircle className="h-4 w-4"/>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold mb-2">Materials Management</h1>
+                <p className="text-muted-foreground">
+                    Organize your learning materials by courses and topics for AI-assisted learning.
+                </p>
+            </div>
 
-                    {success && (
-                        <Alert className="mb-4">
-                            <CheckCircle className="h-4 w-4"/>
-                            <AlertDescription>{success}</AlertDescription>
-                        </Alert>
-                    )}
+            {error && (
+                <Alert className="mb-6 border-destructive bg-destructive/10">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-destructive">{error}</AlertDescription>
+                </Alert>
+            )}
 
-                    <div className="flex items-center justify-center w-full">
-                        <label
-                            className={`w-full flex flex-col items-center px-4 py-6 bg-white rounded-lg shadow-lg tracking-wide border-2 cursor-pointer transition-colors ${
-                                isDragging
-                                    ? 'border-primary-500 border-dashed bg-primary-50'
-                                    : 'border-primary-600 hover:bg-primary-50'
-                            }`}
-                            onDragEnter={handleDragEnter}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                        >
-                            <Upload className="w-8 h-8"/>
-                            <span className="mt-2 text-base">
-                                {uploading
-                                    ? 'Uploading...'
-                                    : isDragging
-                                        ? 'Drop your file here'
-                                        : 'Drag and drop or click to select a file (max 50mb)'}
-                            </span>
-                            <input
-                                type="file"
-                                className="hidden"
-                                onChange={handleInputChange}
-                                disabled={uploading}
-                            />
-                        </label>
-                    </div>
+            {success && (
+                <Alert className="mb-6 border-green-500 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">{success}</AlertDescription>
+                </Alert>
+            )}
 
-                    <div className="space-y-4">
-                        {loading && (
-                            <div className="flex items-center justify-center">
-                                <Loader2 className="w-6 h-6 animate-spin"/>
-                            </div>
-                        )}
-                        {files.length === 0 ? (
-                            <p className="text-center text-gray-500">No files uploaded yet</p>
-                        ) : (
-                            files.map((file) => (
-                                <div
-                                    key={file.name}
-                                    className="flex items-center justify-between p-4 bg-white rounded-lg border"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <FileIcon className="h-6 w-6 text-gray-400"/>
-                                        <span className="font-medium">{file.name.split('/').pop()}</span>
+            <div className="mb-8">
+                <CourseSelector
+                    onCourseSelect={handleCourseSelect}
+                    selectedCourseId={selectedCourse?.id}
+                    showCreateButton={true}
+                    showMaterialCount={true}
+                    showDeleteButton={true}
+                />
+            </div>
+
+            {selectedCourse ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            <span>Materials for {selectedCourse.name}</span>
+                            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add Material
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Upload Material</DialogTitle>
+                                        <DialogDescription>
+                                            Add a new learning material to {selectedCourse.name}
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-sm font-medium">File</label>
+                                            <Input
+                                                type="file"
+                                                onChange={(e) => {
+                                                    const files = e.target.files;
+                                                    if (files && files.length > 0) {
+                                                        setFileToUpload(files[0]);
+                                                    }
+                                                }}
+                                            />
+                                            {fileToUpload && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    Selected: {fileToUpload.name}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium">Topic Tags (Optional)</label>
+                                            <Input
+                                                value={uploadTopics}
+                                                onChange={(e) => setUploadTopics(e.target.value)}
+                                                placeholder="e.g., machine learning, statistics, visualization"
+                                                className="mt-1"
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Separate multiple topics with commas.
+                                            </p>
+                                        </div>
+                                        <div className="flex justify-end space-x-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setShowUploadDialog(false);
+                                                    setFileToUpload(null);
+                                                    setUploadTopics('');
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={handleFileUpload}
+                                                disabled={!fileToUpload || uploading}
+                                            >
+                                                {uploading ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        Uploading...
+                                                    </>
+                                                ) : (
+                                                    'Upload Material'
+                                                )}
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <button
-                                            onClick={() => handleDownload(file.name)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                                            title="Download"
-                                        >
-                                            <Download className="h-5 w-5"/>
-                                        </button>
-                                        <button
-                                            onClick={() => handleShare(file.name)}
-                                            className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
-                                            title="Share"
-                                        >
-                                            <Share2 className="h-5 w-5"/>
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setFileToDelete(file.name);
-                                                setShowDeleteDialog(true);
-                                            }}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 className="h-5 w-5"/>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-
-                    {/* Share Dialog */}
-                    <Dialog open={Boolean(shareUrl)} onOpenChange={() => {
-                        setShareUrl('');
-                        setSelectedFile(null);
-                    }}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Share {selectedFile?.split('/').pop()}</DialogTitle>
-                                <DialogDescription>
-                                    Copy the link below to share your file. This link will expire in 24 hours.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="text"
-                                    value={shareUrl}
-                                    readOnly
-                                    className="flex-1 p-2 border rounded bg-gray-50"
-                                />
-                                <button
-                                    onClick={() => copyToClipboard(shareUrl)}
-                                    className="p-2 text-primary-600 hover:bg-primary-50 rounded-full transition-colors relative"
-                                >
-                                    <Copy className="h-5 w-5"/>
-                                    {showCopiedMessage && (
+                                </DialogContent>
+                            </Dialog>
+                        </CardTitle>
+                        <CardDescription>
+                            {materials.length} material{materials.length !== 1 ? 's' : ''} 
+                            {topics.length > 0 && ` • ${topics.length} topic${topics.length !== 1 ? 's' : ''}`}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {topics.length > 0 && (
+                            <div className="mb-6">
+                                <h3 className="text-sm font-medium mb-2 flex items-center">
+                                    <Tag className="h-4 w-4 mr-1" />
+                                    Topics in this course
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {topics.map((topic) => (
                                         <span
-                                            className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded">
-                                            Copied!
+                                            key={topic.name}
+                                            className="text-xs bg-primary/10 text-primary px-2 py-1 rounded border"
+                                        >
+                                            {topic.name} ({topic.materialCount})
                                         </span>
-                                    )}
-                                </button>
+                                    ))}
+                                </div>
                             </div>
-                        </DialogContent>
-                    </Dialog>
+                        )}
 
-                    {/* Delete Confirmation Dialog */}
-                    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Delete File</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Are you sure you want to delete this file? This action cannot be undone.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                                    Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </CardContent>
-            </Card>
+                        {loading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                                Loading materials...
+                            </div>
+                        ) : materials.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <FileIcon className="h-12 w-12 mx-auto mb-4" />
+                                <p>No materials uploaded yet</p>
+                                <p className="text-sm">Upload your first learning material to get started</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {materials.map((material) => (
+                                    <div
+                                        key={material.id}
+                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
+                                    >
+                                        <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                            <FileIcon className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium truncate">{material.file_name}</p>
+                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                                    <span>{formatFileSize(material.file_size)}</span>
+                                                    <span>{formatDate(material.created_at)}</span>
+                                                    {material.topic_tags.length > 0 && (
+                                                        <div className="flex items-center space-x-1">
+                                                            <Tag className="h-3 w-3" />
+                                                            <span>{material.topic_tags.join(', ')}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="sm">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete Material</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to delete "{material.file_name}"? This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => deleteMaterial(material.id)}
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="text-center py-12">
+                    <CardContent>
+                        <Upload className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Select a Course</h3>
+                        <p className="text-muted-foreground">
+                            Choose a course above to manage its learning materials.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { title, lesson_type = 'general' } = body
+    const { title, lesson_type = 'general', course_id, topic_selection = [] } = body
     
     if (!title) {
       return NextResponse.json(
@@ -31,9 +31,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Validate course_id if provided
+    if (course_id && typeof course_id !== 'string') {
+      return NextResponse.json(
+        { error: 'Course ID must be a string' },
+        { status: 400 }
+      )
+    }
+
+    // Validate topic_selection
+    if (!Array.isArray(topic_selection)) {
+      return NextResponse.json(
+        { error: 'Topic selection must be an array' },
+        { status: 400 }
+      )
+    }
+
     const lessonData: Omit<LessonInsert, 'user_id'> = {
       title,
       lesson_type,
+      course_id: course_id || null,
+      topic_selection,
       messages: []
     }
 
