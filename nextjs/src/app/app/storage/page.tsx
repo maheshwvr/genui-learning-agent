@@ -8,8 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DragDropZone } from '@/components/ui/drag-drop-zone';
+import { TopicAssociationDropdown } from '@/components/ui/topic-association-dropdown';
+import { CourseTopicBanner } from '@/components/ui/course-topic-banner';
 import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus } from 'lucide-react';
 import { CourseSelector } from '@/components/ui/course-selector';
+import { sanitizeFileNameForStorage, generateUniqueFileName, validateFileType } from '@/lib/utils/file-utils';
 
 interface Material {
   id: string;
@@ -74,45 +78,74 @@ export default function MaterialsManagementPage() {
         }
     };
 
-    const handleFileUpload = useCallback(async () => {
-        if (!fileToUpload || !selectedCourse) return;
+    const handleFileUpload = useCallback(async (filesToUpload?: File[]) => {
+        const files = filesToUpload || (fileToUpload ? [fileToUpload] : []);
+        if (files.length === 0 || !selectedCourse) return;
 
         try {
             setUploading(true);
             setError('');
 
-            const formData = new FormData();
-            formData.append('file', fileToUpload);
-            
-            const parsedTopics = uploadTopics
-                .split(',')
-                .map(t => t.trim())
-                .filter(t => t.length > 0);
-            
-            formData.append('topicTags', JSON.stringify(parsedTopics));
+            // Get existing filenames to avoid collisions
+            const existingNames = materials.map(m => m.file_name);
 
-            const response = await fetch(`/api/courses/${selectedCourse.id}/materials`, {
-                method: 'POST',
-                body: formData,
-            });
+            // Process each file
+            for (const file of files) {
+                // Validate file type
+                if (!validateFileType(file)) {
+                    setError(`${file.name}: Unsupported file type`);
+                    continue;
+                }
 
-            if (response.ok) {
-                await loadCourseMaterials(selectedCourse.id);
-                setSuccess('Material uploaded successfully');
-                setFileToUpload(null);
-                setUploadTopics('');
-                setShowUploadDialog(false);
-            } else {
-                const data = await response.json();
-                setError(data.error || 'Failed to upload material');
+                // Sanitize filename and create unique name
+                const sanitizedName = sanitizeFileNameForStorage(file.name);
+                const uniqueName = generateUniqueFileName(sanitizedName, existingNames);
+
+                const formData = new FormData();
+                // Create a new file with the sanitized name
+                const sanitizedFile = new File([file], uniqueName, { type: file.type });
+                formData.append('file', sanitizedFile);
+                
+                const parsedTopics = uploadTopics
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+                
+                formData.append('topicTags', JSON.stringify(parsedTopics));
+
+                const response = await fetch(`/api/courses/${selectedCourse.id}/materials`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    setError(data.error || `Failed to upload ${file.name}`);
+                    continue;
+                }
+
+                // Add to existing names to prevent duplicates in batch
+                existingNames.push(uniqueName);
             }
+
+            // Refresh materials and reset form
+            await loadCourseMaterials(selectedCourse.id);
+            setSuccess(`${files.length} material${files.length > 1 ? 's' : ''} uploaded successfully`);
+            setFileToUpload(null);
+            setUploadTopics('');
+            setShowUploadDialog(false);
         } catch (err) {
             setError('Failed to upload material');
             console.error('Error uploading material:', err);
         } finally {
             setUploading(false);
         }
-    }, [fileToUpload, selectedCourse, uploadTopics, loadCourseMaterials]);
+    }, [fileToUpload, selectedCourse, uploadTopics, loadCourseMaterials, materials]);
+
+    // Wrapper for dialog upload button
+    const handleDialogUpload = useCallback(() => {
+        handleFileUpload();
+    }, [handleFileUpload]);
 
     const deleteMaterial = async (materialId: string) => {
         if (!selectedCourse) return;
@@ -245,7 +278,7 @@ export default function MaterialsManagementPage() {
                                                 Cancel
                                             </Button>
                                             <Button
-                                                onClick={handleFileUpload}
+                                                onClick={handleDialogUpload}
                                                 disabled={!fileToUpload || uploading}
                                             >
                                                 {uploading ? (
@@ -268,87 +301,90 @@ export default function MaterialsManagementPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {topics.length > 0 && (
-                            <div className="mb-6">
-                                <h3 className="text-sm font-medium mb-2 flex items-center">
-                                    <Tag className="h-4 w-4 mr-1" />
-                                    Topics in this course
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {topics.map((topic) => (
-                                        <span
-                                            key={topic.name}
-                                            className="text-xs bg-primary/10 text-primary px-2 py-1 rounded border"
-                                        >
-                                            {topic.name} ({topic.materialCount})
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <CourseTopicBanner
+                            courseId={selectedCourse.id}
+                            courseName={selectedCourse.name}
+                            topics={topics}
+                            onTopicsChange={() => loadCourseMaterials(selectedCourse.id)}
+                        />
 
-                        {loading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                                Loading materials...
-                            </div>
-                        ) : materials.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <FileIcon className="h-12 w-12 mx-auto mb-4" />
-                                <p>No materials uploaded yet</p>
-                                <p className="text-sm">Upload your first learning material to get started</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {materials.map((material) => (
-                                    <div
-                                        key={material.id}
-                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
-                                    >
-                                        <div className="flex items-center space-x-3 min-w-0 flex-1">
-                                            <FileIcon className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-medium truncate">{material.file_name}</p>
-                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                                    <span>{formatFileSize(material.file_size)}</span>
-                                                    <span>{formatDate(material.created_at)}</span>
-                                                    {material.topic_tags.length > 0 && (
-                                                        <div className="flex items-center space-x-1">
-                                                            <Tag className="h-3 w-3" />
-                                                            <span>{material.topic_tags.join(', ')}</span>
-                                                        </div>
-                                                    )}
+                        <DragDropZone
+                            onFilesDropped={handleFileUpload}
+                            disabled={uploading}
+                            className="min-h-[200px]"
+                        >
+                            {loading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                                    Loading materials...
+                                </div>
+                            ) : materials.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <FileIcon className="h-12 w-12 mx-auto mb-4" />
+                                    <p>No materials uploaded yet</p>
+                                    <p className="text-sm">Upload your first learning material to get started</p>
+                                    <p className="text-sm mt-2 text-blue-600">Drag and drop files here or use the "Add Material" button above</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {materials.map((material) => (
+                                        <div
+                                            key={material.id}
+                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
+                                        >
+                                            <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                                <FileIcon className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-medium truncate">{material.file_name}</p>
+                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                                        <span>{formatFileSize(material.file_size)}</span>
+                                                        <span>{formatDate(material.created_at)}</span>
+                                                        {material.topic_tags.length > 0 && (
+                                                            <div className="flex items-center space-x-1">
+                                                                <Tag className="h-3 w-3" />
+                                                                <span>{material.topic_tags.join(', ')}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className="flex items-center space-x-2">
+                                                <TopicAssociationDropdown
+                                                    materialId={material.id}
+                                                    courseId={selectedCourse.id}
+                                                    currentTopics={material.topic_tags}
+                                                    onTopicsChange={() => loadCourseMaterials(selectedCourse.id)}
+                                                />
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="sm">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Delete Material</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Are you sure you want to delete "{material.file_name}"? This action cannot be undone.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                onClick={() => deleteMaterial(material.id)}
+                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                            >
+                                                                Delete
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
                                         </div>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="sm">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Delete Material</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Are you sure you want to delete "{material.file_name}"? This action cannot be undone.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        onClick={() => deleteMaterial(material.id)}
-                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                    >
-                                                        Delete
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            )}
+                        </DragDropZone>
                     </CardContent>
                 </Card>
             ) : (

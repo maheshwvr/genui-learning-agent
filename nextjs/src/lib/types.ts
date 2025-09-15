@@ -363,3 +363,36 @@ export type MaterialUpdate = TablesUpdate<'materials'>
 export type LessonInsert = TablesInsert<'lessons'>
 export type LessonUpdate = TablesUpdate<'lessons'>
 export type LessonRow = Tables<'lessons'>
+
+// Drag & Drop and Topic Management interfaces
+export interface DragDropZoneProps {
+  onFilesDropped: (files: File[]) => void
+  disabled?: boolean
+  className?: string
+  children?: React.ReactNode
+  accept?: Record<string, string[]>
+  maxSize?: number
+  multiple?: boolean
+}
+
+export interface Topic {
+  id: string
+  name: string
+  materialCount: number
+}
+
+export interface TopicAssociationDropdownProps {
+  materialId: string
+  courseId: string
+  currentTopics: string[]
+  onTopicsChange: (topics: string[]) => void
+  className?: string
+}
+
+export interface CourseTopicBannerProps {
+  courseId: string
+  courseName: string
+  topics: Topic[]
+  onTopicsChange: () => void
+  className?: string
+}

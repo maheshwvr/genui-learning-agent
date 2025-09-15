@@ -262,3 +262,26 @@ export async function getSignedMaterialUrl(filePath: string): Promise<string | n
     return null
   }
 }
+
+/**
+ * Update material topics (topic_tags)
+ */
+export async function updateMaterialTopics(materialId: string, topics: string[]): Promise<boolean> {
+  try {
+    const supabase = await getSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { error } = await (supabase as any)
+      .from('materials')
+      .update({ topic_tags: topics })
+      .eq('id', materialId)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error updating material topics:', error)
+    return false
+  }
+}
