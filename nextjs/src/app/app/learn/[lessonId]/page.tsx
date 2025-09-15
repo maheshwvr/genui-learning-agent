@@ -30,6 +30,7 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingFromDB, setIsLoadingFromDB] = useState(false);
 
   // Initialize chat with lesson messages
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading, stop, append, setMessages } = useChat({
@@ -207,6 +208,7 @@ export default function LessonPage() {
     if (!lessonId) return;
     
     setIsLoading(true);
+    setIsLoadingFromDB(true);
     try {
       const response = await fetch(`/api/lessons/${lessonId}`);
       if (response.ok) {
@@ -254,13 +256,6 @@ export default function LessonPage() {
           
           console.log('Setting', aiMessages.length, 'messages to chat state');
           setMessages(aiMessages);
-          
-          // If we had duplicates, save the cleaned version back to database
-          if (uniqueMessages.length !== data.lesson.messages.length) {
-            console.log('Found duplicates, saving cleaned version');
-            // Save the cleaned messages back
-            setTimeout(() => saveMessagesToLesson(), 1000);
-          }
         }
       } else if (response.status === 404) {
         setError('Lesson not found');
@@ -272,8 +267,9 @@ export default function LessonPage() {
       setError('Failed to load lesson');
     } finally {
       setIsLoading(false);
+      setIsLoadingFromDB(false);
     }
-  }, [lessonId, setMessages, saveMessagesToLesson]);
+  }, [lessonId, setMessages]);
 
   // Handle lesson selection (navigate to different lesson)
   const handleLessonSelect = (newLessonId: string) => {
@@ -288,8 +284,8 @@ export default function LessonPage() {
 
   // Save messages when they change (with debouncing to avoid too many API calls)
   useEffect(() => {
-    // Only save if we have messages and they're different from what was loaded
-    if (messages.length > 0 && lesson) {
+    // Only save if we have messages, they're different from what was loaded, and we're not currently loading from DB
+    if (messages.length > 0 && lesson && !isLoadingFromDB) {
       // Debounce the save to avoid saving too frequently
       const timeoutId = setTimeout(() => {
         console.log('Auto-saving messages due to change. Message count:', messages.length);
@@ -298,7 +294,7 @@ export default function LessonPage() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [messages.length, lesson, saveMessagesToLesson]); // Only trigger on message count change
+  }, [messages.length, lesson, isLoadingFromDB, saveMessagesToLesson]); // Only trigger on message count change
 
   // Save on component unmount to ensure we don't lose data
   useEffect(() => {
