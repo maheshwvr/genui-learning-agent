@@ -12,12 +12,23 @@ interface MCQComponentProps {
   mcq: MCQ;
   onAnswer?: (selectedOption: MCQOption, isCorrect: boolean) => void;
   className?: string;
+  // New props for pre-filled state
+  initialSelectedOptionId?: string | null;
+  initialIsSubmitted?: boolean;
+  initialShowExplanation?: boolean;
 }
 
-export function MCQComponent({ mcq, onAnswer, className }: MCQComponentProps) {
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
+export function MCQComponent({ 
+  mcq, 
+  onAnswer, 
+  className, 
+  initialSelectedOptionId = null,
+  initialIsSubmitted = false,
+  initialShowExplanation = false
+}: MCQComponentProps) {
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(initialSelectedOptionId);
+  const [isSubmitted, setIsSubmitted] = useState(initialIsSubmitted);
+  const [showExplanation, setShowExplanation] = useState(initialShowExplanation);
 
   const selectedOption = selectedOptionId 
     ? mcq.options.find(option => option.id === selectedOptionId)

@@ -89,14 +89,96 @@ export default function LessonPage() {
         ) === index;
       });
 
-      // Convert AI SDK messages back to ChatMessage format for storage
+      // Convert AI SDK messages back to enhanced ChatMessage format for storage
       const chatMessages = uniqueMessages.map((msg, index) => {
-        return {
+        const baseMessage = {
           id: msg.id || `stored_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
           role: msg.role,
           content: msg.content,
           createdAt: new Date().toISOString()
         };
+        
+        // Preserve assessment metadata if it exists
+        if ('assessment' in msg && msg.assessment) {
+          return {
+            ...baseMessage,
+            assessment: msg.assessment
+          };
+        }
+        
+        // Check for tool invocations and convert to assessment metadata
+        if ('toolInvocations' in msg && Array.isArray((msg as any).toolInvocations)) {
+          const toolInvocations = (msg as any).toolInvocations;
+          for (const invocation of toolInvocations) {
+            if (invocation && 'result' in invocation && invocation.result) {
+              // Check for MCQ tool calls
+              if (invocation.toolName === 'generateMCQ' && invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'mcq') {
+                return {
+                  ...baseMessage,
+                  assessment: {
+                    type: 'mcq',
+                    data: invocation.result.data,
+                    results: {
+                      completed: false
+                    }
+                  }
+                };
+              }
+              
+              // Check for TF tool calls  
+              if (invocation.toolName === 'generateTF' && invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'tf') {
+                return {
+                  ...baseMessage,
+                  assessment: {
+                    type: 'tf',
+                    data: invocation.result.data,
+                    results: {
+                      completed: false
+                    }
+                  }
+                };
+              }
+            }
+          }
+        }
+        
+        // Check for experimental_toolCalls and convert to assessment metadata
+        if ('experimental_toolCalls' in msg && Array.isArray((msg as any).experimental_toolCalls)) {
+          const toolCalls = (msg as any).experimental_toolCalls;
+          for (const toolCall of toolCalls) {
+            if (toolCall && 'result' in toolCall && toolCall.result) {
+              // Check for MCQ tool calls
+              if (toolCall.toolName === 'generateMCQ' && toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'mcq') {
+                return {
+                  ...baseMessage,
+                  assessment: {
+                    type: 'mcq',
+                    data: toolCall.result.data,
+                    results: {
+                      completed: false
+                    }
+                  }
+                };
+              }
+              
+              // Check for TF tool calls  
+              if (toolCall.toolName === 'generateTF' && toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'tf') {
+                return {
+                  ...baseMessage,
+                  assessment: {
+                    type: 'tf',
+                    data: toolCall.result.data,
+                    results: {
+                      completed: false
+                    }
+                  }
+                };
+              }
+            }
+          }
+        }
+        
+        return baseMessage;
       });
 
       await fetch(`/api/lessons/${lessonId}`, {
@@ -145,11 +227,23 @@ export default function LessonPage() {
           });
 
           // Convert ChatMessage format to AI SDK Message format with guaranteed unique IDs
-          const aiMessages = uniqueMessages.map((msg: any, index: number) => ({
-            id: `lesson_${lessonId}_msg_${index}_${msg.id}`,
-            role: msg.role,
-            content: msg.content
-          }));
+          const aiMessages = uniqueMessages.map((msg: any, index: number) => {
+            const baseMessage = {
+              id: `lesson_${lessonId}_msg_${index}_${msg.id}`,
+              role: msg.role,
+              content: msg.content
+            };
+            
+            // Preserve assessment metadata if it exists
+            if (msg.assessment) {
+              return {
+                ...baseMessage,
+                assessment: msg.assessment
+              };
+            }
+            
+            return baseMessage;
+          });
           
           console.log('Setting', aiMessages.length, 'messages to chat state');
           setMessages(aiMessages);
@@ -250,6 +344,17 @@ export default function LessonPage() {
           isGenerating={isChatLoading}
           stop={stop}
           append={append}
+          updateMessage={(messageId, updates) => {
+            setMessages(currentMessages => 
+              currentMessages.map(msg => 
+                msg.id === messageId 
+                  ? { ...msg, ...updates }
+                  : msg
+              )
+            );
+            // Trigger save after a brief delay to allow state to update
+            setTimeout(() => saveMessagesToLesson(), 100);
+          }}
         />
       </div>
     </div>

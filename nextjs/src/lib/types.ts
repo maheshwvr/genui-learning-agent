@@ -219,6 +219,25 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   createdAt?: Date
+  
+  // Assessment metadata for storing tool call data and results
+  assessment?: {
+    type: 'mcq' | 'tf'
+    data: any  // MCQ | TF data from lesson-schemas
+    results?: {
+      // For MCQ
+      selectedOptionId?: string
+      isCorrect?: boolean
+      
+      // For TF  
+      answers?: Record<string, boolean>
+      scores?: Array<{statementId: string, isCorrect: boolean}>
+      
+      // Common
+      submittedAt?: string
+      completed: boolean
+    }
+  }
 }
 
 export interface Lesson {

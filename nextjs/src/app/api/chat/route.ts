@@ -94,15 +94,24 @@ Choose the assessment type that best serves the specific learning moment. When i
               });
 
               if (mcq) {
-                // Return a marker that can be easily found and parsed
-                const mcqMarker = `MCQ_DATA_START${JSON.stringify(mcq)}MCQ_DATA_END`;
-                return `I've created a quick quiz question to help reinforce your understanding of ${topic}:\n\n${mcqMarker}`;
+                // Return the structured data directly - AI SDK will handle tool invocation structure
+                return {
+                  type: 'mcq',
+                  data: mcq,
+                  message: `I've created a quick quiz question to help reinforce your understanding of ${topic}:`
+                };
               } else {
-                return 'I had trouble creating a quiz question, but let\'s continue our discussion!';
+                return {
+                  type: 'error',
+                  message: 'I had trouble creating a quiz question, but let\'s continue our discussion!'
+                };
               }
             } catch (error) {
               console.error('Error generating MCQ:', error);
-              return 'I had trouble creating a quiz question, but let\'s continue our discussion!';
+              return {
+                type: 'error', 
+                message: 'I had trouble creating a quiz question, but let\'s continue our discussion!'
+              };
             }
           }
         }),
@@ -125,15 +134,24 @@ Choose the assessment type that best serves the specific learning moment. When i
               });
 
               if (tf) {
-                // Return a marker that can be easily found and parsed
-                const tfMarker = `TF_DATA_START${JSON.stringify(tf)}TF_DATA_END`;
-                return `Let's explore some key aspects of ${topic} through these True/False statements:\n\n${tfMarker}`;
+                // Return the structured data directly - AI SDK will handle tool invocation structure
+                return {
+                  type: 'tf',
+                  data: tf,
+                  message: `Let's explore some key aspects of ${topic} through these True/False statements:`
+                };
               } else {
-                return 'I had trouble creating True/False statements, but let\'s continue our discussion!';
+                return {
+                  type: 'error',
+                  message: 'I had trouble creating True/False statements, but let\'s continue our discussion!'
+                };
               }
             } catch (error) {
               console.error('Error generating T/F:', error);
-              return 'I had trouble creating True/False statements, but let\'s continue our discussion!';
+              return {
+                type: 'error',
+                message: 'I had trouble creating True/False statements, but let\'s continue our discussion!'
+              };
             }
           }
         })

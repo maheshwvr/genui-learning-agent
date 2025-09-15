@@ -15,6 +15,7 @@ import { MCQLoading } from '@/components/ui/mcq-loading'
 import { TFComponent } from '@/components/ui/tf-component'
 import { TFLoading } from '@/components/ui/tf-loading'
 import { type MCQ, type TF, type MCQOption } from '@/lib/ai/lesson-schemas'
+import { type ChatMessage } from '@/lib/types'
 
 interface ChatProps {
   messages: Message[]
@@ -24,6 +25,7 @@ interface ChatProps {
   isGenerating?: boolean
   stop?: () => void
   append?: (message: { role: 'user' | 'assistant'; content: string }) => void
+  updateMessage?: (messageId: string, updates: Partial<Message>) => void
 }
 
 // Type definitions for tool invocations
@@ -217,7 +219,15 @@ function extractMCQFromMessage(message: Message): MCQ | null {
   }
   
   try {
-    // Check message content first
+    // Check assessment metadata first (for persisted MCQs)
+    if ('assessment' in message && message.assessment) {
+      const assessment = message.assessment as any;
+      if (assessment.type === 'mcq' && assessment.data) {
+        return assessment.data as MCQ;
+      }
+    }
+    
+    // Check message content second
     const contentMCQ = parseMCQFromContent(message.content || '');
     if (contentMCQ) return contentMCQ;
     
@@ -232,18 +242,15 @@ function extractMCQFromMessage(message: Message): MCQ | null {
             if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
               const parsed = safeJSONParse(trimmed);
               if (parsed && validateMCQ(parsed)) {
-                console.log('✅ MCQ from tool invocation JSON');
                 return parsed as MCQ;
               }
             }
             // If it's a plain text response, it might contain MCQ markers
             const mcqFromText = parseMCQFromContent(invocation.result);
             if (mcqFromText) {
-              console.log('✅ MCQ from tool invocation text');
               return mcqFromText;
             }
           } else if (invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'mcq' && 'data' in invocation.result && validateMCQ(invocation.result.data)) {
-            console.log('✅ MCQ from tool invocation data');
             return invocation.result.data as MCQ;
           }
         }
@@ -261,18 +268,15 @@ function extractMCQFromMessage(message: Message): MCQ | null {
             if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
               const parsed = safeJSONParse(trimmed);
               if (parsed && validateMCQ(parsed)) {
-                console.log('✅ MCQ from experimental tool call JSON');
                 return parsed as MCQ;
               }
             }
             // If it's a plain text response, it might contain MCQ markers
             const mcqFromText = parseMCQFromContent(toolCall.result);
             if (mcqFromText) {
-              console.log('✅ MCQ from experimental tool call text');
               return mcqFromText;
             }
           } else if (toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'mcq' && 'data' in toolCall.result && validateMCQ(toolCall.result.data)) {
-            console.log('✅ MCQ from experimental tool call data');
             return toolCall.result.data as MCQ;
           }
         }
@@ -293,7 +297,15 @@ function extractTFFromMessage(message: Message): TF | null {
   }
   
   try {
-    // Check message content first
+    // Check assessment metadata first (for persisted TFs)
+    if ('assessment' in message && message.assessment) {
+      const assessment = message.assessment as any;
+      if (assessment.type === 'tf' && assessment.data) {
+        return assessment.data as TF;
+      }
+    }
+    
+    // Check message content second
     const contentTF = parseTFFromContent(message.content || '');
     if (contentTF) return contentTF;
     
@@ -308,18 +320,15 @@ function extractTFFromMessage(message: Message): TF | null {
             if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
               const parsed = safeJSONParse(trimmed);
               if (parsed && validateTF(parsed)) {
-                console.log('✅ TF from tool invocation JSON');
                 return parsed as TF;
               }
             }
             // If it's a plain text response, it might contain TF markers
             const tfFromText = parseTFFromContent(invocation.result);
             if (tfFromText) {
-              console.log('✅ TF from tool invocation text');
               return tfFromText;
             }
           } else if (invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'tf' && 'data' in invocation.result && validateTF(invocation.result.data)) {
-            console.log('✅ TF from tool invocation data');
             return invocation.result.data as TF;
           }
         }
@@ -337,18 +346,15 @@ function extractTFFromMessage(message: Message): TF | null {
             if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
               const parsed = safeJSONParse(trimmed);
               if (parsed && validateTF(parsed)) {
-                console.log('✅ TF from experimental tool call JSON');
                 return parsed as TF;
               }
             }
             // If it's a plain text response, it might contain TF markers
             const tfFromText = parseTFFromContent(toolCall.result);
             if (tfFromText) {
-              console.log('✅ TF from experimental tool call text');
               return tfFromText;
             }
           } else if (toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'tf' && 'data' in toolCall.result && validateTF(toolCall.result.data)) {
-            console.log('✅ TF from experimental tool call data');
             return toolCall.result.data as TF;
           }
         }
@@ -399,6 +405,26 @@ function generateTFSummary(tf: TF, results: Array<{statementId: string, isCorrec
   return `SILENT_SUMMARY: User completed T/F about "${tf.topic}". Results: ${correctCount}/${totalCount} correct. Correct answers: [${correctStatements.join(', ')}]. Incorrect answers: [${incorrectStatements.join(', ')}]. Overall performance: ${performanceAnalysis}.`;
 }
 
+// Helper function to convert Message to ChatMessage for assessment result storage
+function convertToEnhancedMessage(message: Message, assessmentData?: any): ChatMessage {
+  return {
+    id: message.id,
+    role: message.role as 'user' | 'assistant', // Type assertion since we only handle user/assistant in ChatMessage
+    content: message.content,
+    createdAt: new Date(),
+    assessment: assessmentData
+  };
+}
+
+// Helper function to check if message has existing assessment results
+function getExistingAssessmentResults(message: Message): any {
+  // Check if this is an enhanced ChatMessage with assessment metadata
+  if ('assessment' in message && message.assessment) {
+    return message.assessment;
+  }
+  return null;
+}
+
 export function Chat({
   messages,
   input,
@@ -406,7 +432,8 @@ export function Chat({
   handleSubmit,
   isGenerating = false,
   stop,
-  append
+  append,
+  updateMessage
 }: ChatProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { containerRef, endRef, scrollToBottom } = useScrollToBottom({
@@ -545,16 +572,6 @@ export function Chat({
                         .trim();
                     }
                     
-                    console.log('Message content check:', {
-                      id: message.id,
-                      role: message.role,
-                      contentLength: message.content.length,
-                      hasMCQ: message.content.includes('MCQ_DATA_START'),
-                      hasTF: message.content.includes('TF_DATA_START'),
-                      mcqData: !!mcqData,
-                      tfData: !!tfData
-                    });
-                    
                     // If message has MCQ/TF but no meaningful text content, don't render the message box
                     const shouldRenderMessageBox = message.role === 'user' || (!mcqData && !tfData) || (cleanedContent && cleanedContent.length > 0);
                   
@@ -629,54 +646,113 @@ export function Chat({
                       )}
                       
                       {/* Render MCQ component if detected */}
-                      {mcqData && (
-                        <div className="flex justify-start">
-                          <div className="w-8" /> {/* Spacer for alignment */}
-                          <div className="max-w-[80%]">
-                            <MCQComponent 
-                              mcq={mcqData}
-                              onAnswer={(selectedOption, isCorrect) => {
-                                console.log('MCQ answered:', { selectedOption, isCorrect });
-                                
-                                // Generate and send silent summary message immediately
-                                if (append) {
-                                  const summary = generateMCQSummary(mcqData, selectedOption, isCorrect);
-                                  append({
-                                    role: 'user',
-                                    content: summary
-                                  });
-                                }
-                              }}
-                              className="my-2"
-                            />
+                      {mcqData && (() => {
+                        // Check for existing assessment results
+                        const existingResults = getExistingAssessmentResults(message);
+                        const mcqResults = existingResults?.type === 'mcq' ? existingResults.results : null;
+                        
+                        return (
+                          <div className="flex justify-start">
+                            <div className="w-8" /> {/* Spacer for alignment */}
+                            <div className="max-w-[80%]">
+                              <MCQComponent 
+                                mcq={mcqData}
+                                initialSelectedOptionId={mcqResults?.selectedOptionId}
+                                initialIsSubmitted={mcqResults?.completed || false}
+                                initialShowExplanation={mcqResults?.completed || false}
+                                onAnswer={(selectedOption, isCorrect) => {
+                                  // Store results in message assessment metadata
+                                  if (updateMessage) {
+                                    const assessmentData = {
+                                      type: 'mcq' as const,
+                                      data: mcqData,
+                                      results: {
+                                        selectedOptionId: selectedOption.id,
+                                        isCorrect,
+                                        submittedAt: new Date().toISOString(),
+                                        completed: true
+                                      }
+                                    };
+                                    
+                                    updateMessage(message.id, {
+                                      assessment: assessmentData
+                                    } as any);
+                                  }
+                                  
+                                  // Also send summary message for AI context
+                                  if (append) {
+                                    const summary = generateMCQSummary(mcqData, selectedOption, isCorrect);
+                                    append({
+                                      role: 'user',
+                                      content: summary
+                                    });
+                                  }
+                                }}
+                                className="my-2"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       
                       {/* Render TF component if detected */}
-                      {tfData && (
-                        <div className="flex justify-start">
-                          <div className="w-8" /> {/* Spacer for alignment */}
-                          <div className="max-w-[80%]">
-                            <TFComponent 
-                              tf={tfData}
-                              onAnswer={(results) => {
-                                console.log('TF answered:', results);
-                                
-                                // Generate and send silent summary message immediately
-                                if (append) {
-                                  const summary = generateTFSummary(tfData, results);
-                                  append({
-                                    role: 'user',
-                                    content: summary
-                                  });
-                                }
-                              }}
-                              className="my-2"
-                            />
+                      {tfData && (() => {
+                        // Check for existing assessment results
+                        const existingResults = getExistingAssessmentResults(message);
+                        const tfResults = existingResults?.type === 'tf' ? existingResults.results : null;
+                        
+                        return (
+                          <div className="flex justify-start">
+                            <div className="w-8" /> {/* Spacer for alignment */}
+                            <div className="max-w-[80%]">
+                              <TFComponent 
+                                tf={tfData}
+                                initialSelectedAnswers={tfResults?.answers}
+                                initialIsSubmitted={tfResults?.completed || false}
+                                initialShowExplanation={tfResults?.completed || false}
+                                onAnswer={(results) => {
+                                  // Store results in message assessment metadata
+                                  if (updateMessage) {
+                                    // Convert results to answers format
+                                    const answers: Record<string, boolean> = {};
+                                    results.forEach(result => {
+                                      const statement = tfData.statements.find(s => s.id === result.statementId);
+                                      if (statement) {
+                                        answers[result.statementId] = statement.isTrue === result.isCorrect ? statement.isTrue : !statement.isTrue;
+                                      }
+                                    });
+                                    
+                                    const assessmentData = {
+                                      type: 'tf' as const,
+                                      data: tfData,
+                                      results: {
+                                        answers,
+                                        scores: results,
+                                        submittedAt: new Date().toISOString(),
+                                        completed: true
+                                      }
+                                    };
+                                    
+                                    updateMessage(message.id, {
+                                      assessment: assessmentData
+                                    } as any);
+                                  }
+                                  
+                                  // Also send summary message for AI context
+                                  if (append) {
+                                    const summary = generateTFSummary(tfData, results);
+                                    append({
+                                      role: 'user',
+                                      content: summary
+                                    });
+                                  }
+                                }}
+                                className="my-2"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                   } catch (error) {

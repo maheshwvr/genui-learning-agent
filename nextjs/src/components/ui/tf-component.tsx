@@ -12,12 +12,23 @@ interface TFComponentProps {
   tf: TF;
   onAnswer?: (results: { statementId: string; isCorrect: boolean }[]) => void;
   className?: string;
+  // New props for pre-filled state
+  initialSelectedAnswers?: Record<string, boolean>;
+  initialIsSubmitted?: boolean;
+  initialShowExplanation?: boolean;
 }
 
-export function TFComponent({ tf, onAnswer, className }: TFComponentProps) {
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, boolean>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
+export function TFComponent({ 
+  tf, 
+  onAnswer, 
+  className,
+  initialSelectedAnswers = {},
+  initialIsSubmitted = false,
+  initialShowExplanation = false
+}: TFComponentProps) {
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, boolean>>(initialSelectedAnswers);
+  const [isSubmitted, setIsSubmitted] = useState(initialIsSubmitted);
+  const [showExplanation, setShowExplanation] = useState(initialShowExplanation);
 
   // Check if all statements have been answered
   const allAnswered = tf.statements.every(statement => 
