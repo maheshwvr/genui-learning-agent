@@ -29,40 +29,28 @@ export default function LessonPage() {
         hasTF: message.content.includes('TF_DATA_START'),
         mcqComplete: /MCQ_DATA_START[\s\S]*?MCQ_DATA_END/.test(message.content),
         tfComplete: /TF_DATA_START[\s\S]*?TF_DATA_END/.test(message.content),
-        actualContent: message.content // Show FULL content to see if markers are present
+        hasToolInvocations: 'toolInvocations' in message && Array.isArray((message as any).toolInvocations)
       });
       
       // CRITICAL: Check if markers are in the message passed to onFinish
       if (message.content.includes('MCQ_DATA_START') || message.content.includes('TF_DATA_START')) {
         console.log('✅ MARKERS FOUND in onFinish callback!');
       } else {
-        console.log('❌ NO MARKERS in onFinish callback - they are being stripped before this point!');
+        console.log('❌ NO MARKERS in onFinish callback - checking tool invocations...');
+        if ('toolInvocations' in message && Array.isArray((message as any).toolInvocations)) {
+          console.log('Tool invocations found:', (message as any).toolInvocations.length);
+        }
       }
       
-      // Wait a bit for the UI to update, then save
+      // Save the current message immediately to ensure we capture the latest state
+      // Use a longer delay to ensure the message has been added to the messages array
       setTimeout(() => {
-        console.log('=== About to save - checking current messages array ===');
+        console.log('=== About to save after onFinish ===');
         console.log('Total messages in state:', messages.length);
+        console.log('Latest message in state:', messages[messages.length - 1]?.content.substring(0, 200));
         
-        // Check if markers exist in the messages state array
-        const messagesWithMarkers = messages.filter(msg => 
-          msg.content.includes('MCQ_DATA_START') || msg.content.includes('TF_DATA_START')
-        );
-        console.log('Messages with markers in state:', messagesWithMarkers.length);
-        
-        messages.forEach((msg, idx) => {
-          console.log(`Message ${idx} (${msg.role}):`, {
-            id: msg.id,
-            contentLength: msg.content.length,
-            hasMCQ: msg.content.includes('MCQ_DATA_START'),
-            hasTF: msg.content.includes('TF_DATA_START'),
-            contentPreview: msg.content.substring(0, 200)
-          });
-        });
-        
-        console.log('Saving after onFinish with delay');
         saveMessagesToLesson();
-      }, 500);
+      }, 1000);
     }
   });
 
@@ -279,11 +267,43 @@ export default function LessonPage() {
     fetchLesson();
   }, [fetchLesson]);
 
-  // Save messages when they change (for user messages)
+  // Save messages when they change (with debouncing to avoid too many API calls)
   useEffect(() => {
-    // Disabled auto-save - now using onFinish callback for better timing with streaming
-    // This ensures MCQ/TF markers are complete before saving
-  }, [messages, lesson, saveMessagesToLesson]);
+    // Only save if we have messages and they're different from what was loaded
+    if (messages.length > 0 && lesson) {
+      // Debounce the save to avoid saving too frequently
+      const timeoutId = setTimeout(() => {
+        console.log('Auto-saving messages due to change. Message count:', messages.length);
+        saveMessagesToLesson();
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length, lesson, saveMessagesToLesson]); // Only trigger on message count change
+
+  // Save on component unmount to ensure we don't lose data
+  useEffect(() => {
+    return () => {
+      if (messages.length > 0) {
+        console.log('Component unmounting, saving messages');
+        saveMessagesToLesson();
+      }
+    };
+  }, [messages, saveMessagesToLesson]);
+
+  // Save when user navigates away (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (messages.length > 0) {
+        console.log('Page unloading, saving messages');
+        // Note: This is a synchronous save, might not complete in time
+        saveMessagesToLesson();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [messages, saveMessagesToLesson]);
 
   if (isLoading) {
     return (
