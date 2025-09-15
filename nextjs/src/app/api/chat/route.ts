@@ -3,8 +3,6 @@ import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { LEARNING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { detectUncertainty, generateMCQAction, generateTFAction } from '@/lib/ai/lesson-actions';
-import { createServerLessonManager } from '@/lib/supabase/lessons';
-import { ChatMessage } from '@/lib/types';
 
 export const runtime = 'edge';
 

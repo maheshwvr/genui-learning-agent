@@ -5,7 +5,22 @@ import { useParams, useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { Chat } from '@/components/ui/chat';
 import LessonSelector from '@/components/ui/lesson-selector';
-import { Lesson } from '@/lib/types';
+import { Lesson, ChatMessage } from '@/lib/types';
+
+// Type definitions for AI messages with tool invocations
+interface ToolInvocation {
+  toolName: string;
+  result?: {
+    type: string;
+    data: unknown;
+  };
+}
+
+interface MessageWithTools {
+  content: string;
+  toolInvocations?: ToolInvocation[];
+  experimental_toolCalls?: ToolInvocation[];
+}
 
 export default function LessonPage() {
   const params = useParams();
@@ -29,7 +44,7 @@ export default function LessonPage() {
         hasTF: message.content.includes('TF_DATA_START'),
         mcqComplete: /MCQ_DATA_START[\s\S]*?MCQ_DATA_END/.test(message.content),
         tfComplete: /TF_DATA_START[\s\S]*?TF_DATA_END/.test(message.content),
-        hasToolInvocations: 'toolInvocations' in message && Array.isArray((message as any).toolInvocations)
+        hasToolInvocations: 'toolInvocations' in message && Array.isArray((message as MessageWithTools).toolInvocations)
       });
       
       // CRITICAL: Check if markers are in the message passed to onFinish
@@ -37,8 +52,8 @@ export default function LessonPage() {
         console.log('✅ MARKERS FOUND in onFinish callback!');
       } else {
         console.log('❌ NO MARKERS in onFinish callback - checking tool invocations...');
-        if ('toolInvocations' in message && Array.isArray((message as any).toolInvocations)) {
-          console.log('Tool invocations found:', (message as any).toolInvocations.length);
+        if ('toolInvocations' in message && Array.isArray((message as MessageWithTools).toolInvocations)) {
+          console.log('Tool invocations found:', (message as MessageWithTools).toolInvocations?.length);
         }
       }
       
@@ -95,9 +110,10 @@ export default function LessonPage() {
         }
         
         // Check for tool invocations and convert to assessment metadata
-        if ('toolInvocations' in msg && Array.isArray((msg as any).toolInvocations)) {
-          const toolInvocations = (msg as any).toolInvocations;
-          for (const invocation of toolInvocations) {
+        if ('toolInvocations' in msg && Array.isArray((msg as MessageWithTools).toolInvocations)) {
+          const toolInvocations = (msg as MessageWithTools).toolInvocations;
+          if (toolInvocations) {
+            for (const invocation of toolInvocations) {
             if (invocation && 'result' in invocation && invocation.result) {
               // Check for MCQ tool calls
               if (invocation.toolName === 'generateMCQ' && invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'mcq') {
@@ -126,14 +142,16 @@ export default function LessonPage() {
                   }
                 };
               }
+              }
             }
           }
         }
         
         // Check for experimental_toolCalls and convert to assessment metadata
-        if ('experimental_toolCalls' in msg && Array.isArray((msg as any).experimental_toolCalls)) {
-          const toolCalls = (msg as any).experimental_toolCalls;
-          for (const toolCall of toolCalls) {
+        if ('experimental_toolCalls' in msg && Array.isArray((msg as MessageWithTools).experimental_toolCalls)) {
+          const toolCalls = (msg as MessageWithTools).experimental_toolCalls;
+          if (toolCalls) {
+            for (const toolCall of toolCalls) {
             if (toolCall && 'result' in toolCall && toolCall.result) {
               // Check for MCQ tool calls
               if (toolCall.toolName === 'generateMCQ' && toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'mcq') {
@@ -161,6 +179,7 @@ export default function LessonPage() {
                     }
                   }
                 };
+              }
               }
             }
           }
@@ -199,7 +218,7 @@ export default function LessonPage() {
           console.log('Loading', data.lesson.messages.length, 'messages from database');
           
           // Check for existing markers
-          const messagesWithMarkers = data.lesson.messages.filter((msg: any) => 
+          const messagesWithMarkers = data.lesson.messages.filter((msg: ChatMessage) => 
             msg.content.includes('MCQ_DATA_START') || msg.content.includes('TF_DATA_START')
           );
           if (messagesWithMarkers.length > 0) {
@@ -207,15 +226,15 @@ export default function LessonPage() {
           }
           
           // Deduplicate messages by content and role to handle any existing duplicates
-          const uniqueMessages = data.lesson.messages.filter((msg: any, index: number, array: any[]) => {
-            return array.findIndex((m: any) => 
+          const uniqueMessages = data.lesson.messages.filter((msg: ChatMessage, index: number, array: ChatMessage[]) => {
+            return array.findIndex((m: ChatMessage) => 
               m.content === msg.content && 
               m.role === msg.role
             ) === index;
           });
 
           // Convert ChatMessage format to AI SDK Message format with guaranteed unique IDs
-          const aiMessages = uniqueMessages.map((msg: any, index: number) => {
+          const aiMessages = uniqueMessages.map((msg: ChatMessage, index: number) => {
             const baseMessage = {
               id: `lesson_${lessonId}_msg_${index}_${msg.id}`,
               role: msg.role,
@@ -254,7 +273,7 @@ export default function LessonPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [lessonId, setMessages]);
+  }, [lessonId, setMessages, saveMessagesToLesson]);
 
   // Handle lesson selection (navigate to different lesson)
   const handleLessonSelect = (newLessonId: string) => {

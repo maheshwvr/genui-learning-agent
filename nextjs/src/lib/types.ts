@@ -1,3 +1,5 @@
+import type { MCQ, TF } from '@/lib/ai/lesson-schemas';
+
 export type Json =
   | string
   | number
@@ -223,7 +225,7 @@ export interface ChatMessage {
   // Assessment metadata for storing tool call data and results
   assessment?: {
     type: 'mcq' | 'tf'
-    data: any  // MCQ | TF data from lesson-schemas
+    data: MCQ | TF  // MCQ | TF data from lesson-schemas
     results?: {
       // For MCQ
       selectedOptionId?: string

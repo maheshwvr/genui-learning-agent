@@ -221,8 +221,8 @@ function extractMCQFromMessage(message: Message): MCQ | null {
   try {
     // Check assessment metadata first (for persisted MCQs)
     if ('assessment' in message && message.assessment) {
-      const assessment = message.assessment as any;
-      if (assessment.type === 'mcq' && assessment.data) {
+      const assessment = (message as ChatMessage).assessment;
+      if (assessment && assessment.type === 'mcq' && assessment.data) {
         return assessment.data as MCQ;
       }
     }
@@ -299,8 +299,8 @@ function extractTFFromMessage(message: Message): TF | null {
   try {
     // Check assessment metadata first (for persisted TFs)
     if ('assessment' in message && message.assessment) {
-      const assessment = message.assessment as any;
-      if (assessment.type === 'tf' && assessment.data) {
+      const assessment = (message as ChatMessage).assessment;
+      if (assessment && assessment.type === 'tf' && assessment.data) {
         return assessment.data as TF;
       }
     }
@@ -405,22 +405,11 @@ function generateTFSummary(tf: TF, results: Array<{statementId: string, isCorrec
   return `SILENT_SUMMARY: User completed T/F about "${tf.topic}". Results: ${correctCount}/${totalCount} correct. Correct answers: [${correctStatements.join(', ')}]. Incorrect answers: [${incorrectStatements.join(', ')}]. Overall performance: ${performanceAnalysis}.`;
 }
 
-// Helper function to convert Message to ChatMessage for assessment result storage
-function convertToEnhancedMessage(message: Message, assessmentData?: any): ChatMessage {
-  return {
-    id: message.id,
-    role: message.role as 'user' | 'assistant', // Type assertion since we only handle user/assistant in ChatMessage
-    content: message.content,
-    createdAt: new Date(),
-    assessment: assessmentData
-  };
-}
-
 // Helper function to check if message has existing assessment results
-function getExistingAssessmentResults(message: Message): any {
+function getExistingAssessmentResults(message: Message): ChatMessage['assessment'] | null {
   // Check if this is an enhanced ChatMessage with assessment metadata
   if ('assessment' in message && message.assessment) {
-    return message.assessment;
+    return (message as ChatMessage).assessment;
   }
   return null;
 }
@@ -676,7 +665,7 @@ export function Chat({
                                     
                                     updateMessage(message.id, {
                                       assessment: assessmentData
-                                    } as any);
+                                    } as Partial<Message>);
                                   }
                                   
                                   // Also send summary message for AI context
@@ -735,7 +724,7 @@ export function Chat({
                                     
                                     updateMessage(message.id, {
                                       assessment: assessmentData
-                                    } as any);
+                                    } as Partial<Message>);
                                   }
                                   
                                   // Also send summary message for AI context
