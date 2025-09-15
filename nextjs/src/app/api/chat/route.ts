@@ -3,6 +3,8 @@ import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { LEARNING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { detectUncertainty, generateMCQAction, generateTFAction } from '@/lib/ai/lesson-actions';
+import { createServerLessonManager } from '@/lib/supabase/lessons';
+import { ChatMessage } from '@/lib/types';
 
 export const runtime = 'edge';
 
@@ -13,9 +15,11 @@ interface Message {
 
 export async function POST(req: Request) {
   try {
-    const { messages }: { messages: Message[] } = await req.json();
+    const body = await req.json();
+    const { messages, lessonId }: { messages: Message[]; lessonId?: string } = body;
     
     console.log('Received messages:', messages);
+    console.log('Lesson ID:', lessonId);
     console.log('API Key exists:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
     // Get the latest user message for uncertainty detection
@@ -69,26 +73,7 @@ IMPORTANT: If the user's message contains uncertainty indicators like "don't und
 1. First provide a clear, contextual explanation of the topic
 2. Then use either generateMCQ or generateTF tool to create practice content that builds on that explanation
 
-Choose the assessment type that best serves the specific learning moment. When in doubt, prefer MCQ.
-
-## SILENT SUMMARY MESSAGE HANDLING:
-
-When you receive a message starting with "SILENT_SUMMARY:", this contains the user's performance on a question they just completed. These messages are NOT visible to the user in the chat interface.
-
-**For these summary messages, you should:**
-1. **Acknowledge the results** in a supportive way
-2. **Encourage critical thinking** about how concepts connect and relate to each other
-3. **Adjust lesson difficulty** based on their performance:
-   - If they got it correct: Slightly increase complexity or introduce related concepts
-   - If they got it incorrect: Provide reinforcement and consider easier follow-up concepts
-4. **Continue the lesson** naturally without explicitly mentioning the "summary" - just respond as if you know their performance
-
-**Example response patterns:**
-- "Great work on that concept! Now let's think about how this connects to..."
-- "I can see you're working through this - let me help clarify..."
-- "That's a tricky area. Let's explore it from a different angle..."
-
-The goal is seamless lesson progression that adapts to their understanding level.`,
+Choose the assessment type that best serves the specific learning moment. When in doubt, prefer MCQ.`,
       tools: {
         generateMCQ: tool({
           description: 'Generate a multiple choice question to help reinforce learning and test understanding',
@@ -155,10 +140,15 @@ The goal is seamless lesson progression that adapts to their understanding level
       },
       toolChoice: 'auto',
       maxTokens: 1000,
+      onStepFinish: (step) => {
+        console.log('Step finished:', step.stepType);
+      },
+      onFinish: (result) => {
+        console.log('Stream finished, text length:', result.text?.length || 0);
+      }
     });
 
-    console.log('Streaming response created');
-    
+    console.log('Streaming response created, returning to client');
     return result.toDataStreamResponse();
   } catch (error) {
     console.error('API Error:', error);

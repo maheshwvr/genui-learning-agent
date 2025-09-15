@@ -517,49 +517,46 @@ export function Chat({
                     return null;
                   }
                   
-                  // DETAILED LOGGING: Log the entire message structure
-                  console.log('=== FULL MESSAGE STRUCTURE ===');
-                  console.log('Message ID:', message.id);
-                  console.log('Role:', message.role);
-                  console.log('Content:', message.content);
-                  console.log('Full message object:', JSON.stringify(message, null, 2));
-                  console.log('=== END MESSAGE STRUCTURE ===');
-                  
-                  // Check if this message contains an MCQ or TF (with error handling)
-                  let mcqData: MCQ | null = null;
-                  let tfData: TF | null = null;
                   try {
-                    mcqData = message.role === 'assistant' ? extractMCQFromMessage(message) : null;
-                    tfData = message.role === 'assistant' ? extractTFFromMessage(message) : null;
-                  } catch (error) {
-                    console.error('Error extracting MCQ/TF from message:', error);
-                    mcqData = null;
-                    tfData = null;
-                  }
-                  
-                  // Calculate cleaned content (content after removing MCQ/TF markers)
-                  let cleanedContent = message.content;
-                  if ((mcqData || tfData) && message.role === 'assistant') {
-                    cleanedContent = message.content
-                      .replace(/MCQ_DATA_START[\s\S]*?MCQ_DATA_END/g, '')
-                      .replace(/TF_DATA_START[\s\S]*?TF_DATA_END/g, '')
-                      .replace(/\{"type":"mcq"[\s\S]*?\}/g, '')
-                      .replace(/\{"type":"tf"[\s\S]*?\}/g, '')
-                      .replace(/\{[^}]*"question"[^}]*\}/g, '')
-                      .replace(/\{[^}]*"topic"[^}]*"statements"[^}]*\}/g, '')
-                      .trim();
-                  }
-                  
-                  console.log('MCQ Data found:', !!mcqData);
-                  console.log('TF Data found:', !!tfData);
-                  console.log('Original content length:', message.content?.length || 0);
-                  console.log('Cleaned content length:', cleanedContent?.length || 0);
-                  console.log('Cleaned content:', cleanedContent);
-                  
-                  // If message has MCQ/TF but no meaningful text content, don't render the message box
-                  const shouldRenderMessageBox = message.role === 'user' || (!mcqData && !tfData) || (cleanedContent && cleanedContent.length > 0);
-                  
-                  console.log('Should render message box:', shouldRenderMessageBox);
+                    // Wrap entire message rendering in try-catch to prevent one bad message from breaking all subsequent ones
+                    
+                    // Check if this message contains an MCQ or TF (with error handling)
+                    let mcqData: MCQ | null = null;
+                    let tfData: TF | null = null;
+                    try {
+                      mcqData = message.role === 'assistant' ? extractMCQFromMessage(message) : null;
+                      tfData = message.role === 'assistant' ? extractTFFromMessage(message) : null;
+                    } catch (error) {
+                      console.error('Error extracting MCQ/TF from message:', error);
+                      mcqData = null;
+                      tfData = null;
+                    }
+                    
+                    // Calculate cleaned content (content after removing MCQ/TF markers)
+                    let cleanedContent = message.content;
+                    if ((mcqData || tfData) && message.role === 'assistant') {
+                      cleanedContent = message.content
+                        .replace(/MCQ_DATA_START[\s\S]*?MCQ_DATA_END/g, '')
+                        .replace(/TF_DATA_START[\s\S]*?TF_DATA_END/g, '')
+                        .replace(/\{"type":"mcq"[\s\S]*?\}/g, '')
+                        .replace(/\{"type":"tf"[\s\S]*?\}/g, '')
+                        .replace(/\{[^}]*"question"[^}]*\}/g, '')
+                        .replace(/\{[^}]*"topic"[^}]*"statements"[^}]*\}/g, '')
+                        .trim();
+                    }
+                    
+                    console.log('Message content check:', {
+                      id: message.id,
+                      role: message.role,
+                      contentLength: message.content.length,
+                      hasMCQ: message.content.includes('MCQ_DATA_START'),
+                      hasTF: message.content.includes('TF_DATA_START'),
+                      mcqData: !!mcqData,
+                      tfData: !!tfData
+                    });
+                    
+                    // If message has MCQ/TF but no meaningful text content, don't render the message box
+                    const shouldRenderMessageBox = message.role === 'user' || (!mcqData && !tfData) || (cleanedContent && cleanedContent.length > 0);
                   
                   return (
                     <div key={message.id} className="space-y-4">
@@ -682,6 +679,24 @@ export function Chat({
                       )}
                     </div>
                   );
+                  } catch (error) {
+                    console.error('Error rendering message:', message.id, error);
+                    // Return a fallback message rendering to prevent breaking the entire chat
+                    return (
+                      <div key={message.id} className="space-y-4">
+                        <div className="flex gap-3 justify-start">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback>
+                              <Bot className="w-4 h-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="max-w-[80%] rounded-lg px-4 py-2 bg-muted">
+                            <p className="text-sm text-red-500">Error rendering message content</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                 })
                 .filter(Boolean)}
               

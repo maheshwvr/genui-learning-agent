@@ -34,6 +34,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      lessons: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          messages: Json
+          course_id: string | null
+          lesson_type: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string
+          messages?: Json
+          course_id?: string | null
+          lesson_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          messages?: Json
+          course_id?: string | null
+          lesson_type?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       todo_list: {
         Row: {
           created_at: string
@@ -179,3 +212,26 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+// Chat and Lesson Types
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt?: Date
+}
+
+export interface Lesson {
+  id: string
+  user_id: string
+  title: string
+  messages: ChatMessage[]
+  course_id?: string | null
+  lesson_type: 'general' | 'pre-exam' | 'post-lecture'
+  created_at: string
+  updated_at: string
+}
+
+export type LessonInsert = TablesInsert<'lessons'>
+export type LessonUpdate = TablesUpdate<'lessons'>
+export type LessonRow = Tables<'lessons'>
