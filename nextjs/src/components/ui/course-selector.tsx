@@ -104,10 +104,7 @@ export function CourseSelector({
         setNewCourseDescription('')
         setShowCreateDialog(false)
         
-        // Auto-select the newly created course
-        if (onCourseSelect) {
-          onCourseSelect({ ...data.course, materialCount: 0 })
-        }
+        // Note: Removed auto-selection to allow users to manually select the course
       } else {
         const errorData = await courseResponse.json().catch(() => ({ error: 'Unknown error' }))
         const errorMessage = errorData.error || `Failed to create course (${courseResponse.status})`

@@ -31,49 +31,13 @@ export default function LearnPage() {
     setSelectedCourse(course);
     setSelectedTopics([]); // Reset topics when course changes
     
-    // If course has materials, show topic selection; otherwise go directly to lesson creation
-    if (course.materialCount > 0) {
-      setCurrentStep('topic-selection');
-    } else {
-      // For courses without materials, create lesson immediately
-      createLessonWithoutMaterials(course);
-    }
+    // Always proceed to topic selection step, regardless of material count
+    setCurrentStep('topic-selection');
   };
 
   // Handle topic selection changes
   const handleTopicsChange = (topics: string[]) => {
     setSelectedTopics(topics);
-  };
-
-  // Create lesson without materials (for empty courses)
-  const createLessonWithoutMaterials = async (course: Course) => {
-    try {
-      setIsCreatingLesson(true);
-      const response = await fetch('/api/lessons', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: `${course.name} - ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
-          lesson_type: 'general',
-          course_id: course.id,
-          topic_selection: []
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const newLesson = data.lesson;
-        router.push(`/app/learn/${newLesson.id}`);
-      } else {
-        console.error('Failed to create lesson');
-      }
-    } catch (error) {
-      console.error('Error creating lesson:', error);
-    } finally {
-      setIsCreatingLesson(false);
-    }
   };
 
   // Start learning with selected topics

@@ -48,12 +48,9 @@ async function streamNativeWithFiles(
     
     // Add files using createPartFromUri
     materialFileData.forEach(fileData => {
-      console.log(`Adding file to content: ${fileData.fileUri} (${fileData.mimeType})`);
       const filePart = createPartFromUri(fileData.fileUri, fileData.mimeType);
       content.push(filePart);
     });
-
-    console.log(`Generating content with ${materialFileData.length} files using GoogleGenAI`);
 
     // Use GoogleGenAI to generate content with files
     const response = await ai.models.generateContent({
@@ -65,8 +62,6 @@ async function streamNativeWithFiles(
     if (!responseText) {
       throw new Error('No response text generated');
     }
-    
-    console.log('Generated response with file content:', responseText.substring(0, 200) + '...');
 
     // Create a mock streamText result to be compatible with useChat
     const mockStreamResult = {
@@ -101,7 +96,6 @@ async function streamNativeWithFiles(
     console.error('Error with GoogleGenAI file processing:', error);
     
     // Fall back to regular AI SDK without files
-    console.log('Falling back to AI SDK without files...');
     return streamText({
       model: google('gemini-2.5-flash-lite'),
       temperature: 0.5,
@@ -115,11 +109,6 @@ async function streamNativeWithFiles(
 
 // Fresh chat function - no persistence, each request is independent
 async function streamFreshChat(messages: Message[], lessonId?: string) {
-  console.log('=== FRESH CHAT SESSION ===');
-  console.log('Processing fresh chat session');
-  console.log('Lesson ID:', lessonId);
-  console.log('Messages count:', messages.length);
-
   // Process messages and handle initial context
   let processedMessages = [...messages];
   let systemPrompt = LEARNING_SYSTEM_PROMPT;
@@ -134,23 +123,16 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
   const hasAssistantResponses = messages.some(msg => msg.role === 'assistant');
   const shouldLoadMaterials = lessonId && !hasAssistantResponses;
   
-  console.log(`Messages: ${messages.length}, Has assistant responses: ${hasAssistantResponses}, Should load materials: ${shouldLoadMaterials}`);
-  
   if (shouldLoadMaterials) {
     try {
       const lessonManager = await createServerLessonManager();
       const lesson = await lessonManager.getLesson(lessonId);
       
       if (lesson && lesson.course_id && Array.isArray(lesson.topic_selection)) {
-        console.log('Loading course materials for first message of fresh session');
-        console.log('Course:', lesson.course_id, 'Topics:', lesson.topic_selection);
-        
         // Get materials based on course and topic selection
         const lessonMaterials = await getCourseMaterialsByTopics(lesson.course_id, lesson.topic_selection);
         
         if (lessonMaterials.length > 0) {
-          console.log(`Found ${lessonMaterials.length} materials for context`);
-          
           // Process materials but don't persist them
           const materialResult = await processLessonMaterialsWithUpload(lessonMaterials);
           
@@ -171,8 +153,6 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
       console.error('Error loading course materials:', error);
       // Continue without materials if there's an error
     }
-  } else if (lessonId && hasAssistantResponses) {
-    console.log('Skipping material loading for subsequent message in lesson:', lessonId);
   }
 
   // Add default greeting if no messages
@@ -183,13 +163,10 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
         content: "Hello! I'm ready to start learning."
       }
     ];
-    console.log('Added default greeting message');
   }
 
   // Add uploaded files reference to the conversation
   if (materialFileData.length > 0 && processedMessages.length > 0) {
-    console.log(`Adding ${materialFileData.length} uploaded files to conversation context`);
-    
     // Find the first user message and modify it to include file references
     const firstUserMessageIndex = processedMessages.findIndex(m => m.role === 'user');
     if (firstUserMessageIndex !== -1) {
@@ -209,8 +186,6 @@ ${fileInstructions}
 
 Please analyze the content from these files when answering questions about the course material.`
       };
-      
-      console.log(`Added ${materialFileData.length} file URIs to first user message`);
     }
   }
 
@@ -218,11 +193,8 @@ Please analyze the content from these files when answering questions about the c
   const latestUserMessage = messages.filter((m: Message) => m.role === 'user').pop();
   const shouldTriggerAssessment = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
 
-  console.log('Should trigger assessment:', shouldTriggerAssessment);
-
   // If we have uploaded files, use the native Google Generative AI SDK for proper file support
   if (materialFileData.length > 0) {
-    console.log(`Using native Google AI SDK for conversation with ${materialFileData.length} files`);
     return await streamNativeWithFiles(processedMessages, systemPrompt, materialFileData, shouldTriggerAssessment, latestUserMessage, messages);
   }
 
@@ -290,8 +262,6 @@ REMEMBER: This is a fresh conversation with no previous context. Introduce topic
           reason: z.string().describe('Why this MCQ would be helpful')
         }),
         execute: async ({ topic, difficulty, reason }) => {
-          console.log('MCQ Tool called! Topic:', topic, 'Difficulty:', difficulty, 'Reason:', reason);
-          
           try {
             const mcq = await generateMCQAction({
               topic,
@@ -329,8 +299,6 @@ REMEMBER: This is a fresh conversation with no previous context. Introduce topic
           reason: z.string().describe('Why these T/F statements would be helpful')
         }),
         execute: async ({ topic, difficulty, reason }) => {
-          console.log('T/F Tool called! Topic:', topic, 'Difficulty:', difficulty, 'Reason:', reason);
-          
           try {
             const tf = await generateTFAction({
               topic,
@@ -362,13 +330,7 @@ REMEMBER: This is a fresh conversation with no previous context. Introduce topic
       })
     },
     toolChoice: 'auto',
-    maxTokens: 1000,
-    onStepFinish: (step) => {
-      console.log('Step finished:', step.stepType);
-    },
-    onFinish: (result) => {
-      console.log('Stream finished, text length:', result.text?.length || 0);
-    }
+    maxTokens: 1000
   });
 
   return result.toDataStreamResponse();
@@ -378,13 +340,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { messages, lessonId }: { messages: Message[]; lessonId?: string } = body;
-    
-    console.log('=== CHAT API CALLED ===');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('Received messages:', messages.length);
-    console.log('Lesson ID:', lessonId);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
-    console.log('Last message:', messages[messages.length - 1]?.content?.substring(0, 100) + '...');
 
     // Create a unique key based primarily on lesson ID to catch rapid duplicates
     const requestKey = lessonId || 'no-lesson';
@@ -393,7 +348,6 @@ export async function POST(req: Request) {
     const existing = requestMap.get(requestKey);
     const now = Date.now();
     if (existing && (now - existing.timestamp) < 10000) {
-      console.log('⚠️  DUPLICATE REQUEST DETECTED for lesson:', requestKey, '- returning existing promise');
       return existing.promise;
     }
 

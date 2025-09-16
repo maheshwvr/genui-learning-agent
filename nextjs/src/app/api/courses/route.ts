@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createCourse, getUserCourses, deleteCourse } from '@/lib/supabase/courses'
+import { createCourse, getUserCoursesWithMaterialCount, deleteCourse } from '@/lib/supabase/courses'
 
 export async function GET() {
   try {
-    const courses = await getUserCourses()
+    const courses = await getUserCoursesWithMaterialCount()
     return NextResponse.json({ courses })
   } catch (error) {
     console.error('Error fetching courses:', error)
