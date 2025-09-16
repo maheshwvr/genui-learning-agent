@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { cn } from '@/lib/utils'
 import { Upload, FileIcon, X } from 'lucide-react'
-import { validateFileType, formatFileSize } from '@/lib/utils/file-utils'
+import { validateFileForTusUpload, formatFileSize } from '@/lib/utils/file-utils'
 
 interface DroppedFile {
   file: File
@@ -40,17 +40,37 @@ export function DragDropZone({
     }
 
     if (acceptedFiles.length > 0) {
-      // Create preview objects for dropped files
-      const filesWithPreviews = acceptedFiles.map(file => ({
-        file,
-        id: `${file.name}-${Date.now()}-${Math.random()}`,
-        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
-      }))
+      // Validate files for TUS upload
+      const validFiles: File[] = []
+      const invalidFiles: { file: File; error: string }[] = []
 
-      setDroppedFiles(prev => [...prev, ...filesWithPreviews])
-      
-      // Call the parent handler
-      onFilesDropped(acceptedFiles)
+      acceptedFiles.forEach(file => {
+        const validation = validateFileForTusUpload(file)
+        if (validation.valid) {
+          validFiles.push(file)
+        } else {
+          invalidFiles.push({ file, error: validation.error || 'Validation failed' })
+        }
+      })
+
+      if (invalidFiles.length > 0) {
+        console.error('Invalid files:', invalidFiles)
+        // You could show a toast or alert here for invalid files
+      }
+
+      if (validFiles.length > 0) {
+        // Create preview objects for valid files
+        const filesWithPreviews = validFiles.map(file => ({
+          file,
+          id: `${file.name}-${Date.now()}-${Math.random()}`,
+          preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+        }))
+
+        setDroppedFiles(prev => [...prev, ...filesWithPreviews])
+        
+        // Call the parent handler with valid files only
+        onFilesDropped(validFiles)
+      }
     }
   }, [onFilesDropped])
 
@@ -127,7 +147,7 @@ export function DragDropZone({
               <p className="text-sm text-muted-foreground mt-1">
                 {isDragReject 
                   ? "Please check file types and sizes"
-                  : `Maximum ${formatFileSize(maxSize)} per file`
+                  : `Maximum ${formatFileSize(maxSize)} per file (up to 100MB supported)`
                 }
               </p>
             </div>

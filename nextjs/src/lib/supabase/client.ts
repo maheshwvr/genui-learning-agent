@@ -22,3 +22,48 @@ export async function createSPASassClientAuthenticated() {
     }
     return new SassClient(client, ClientType.SPA);
 }
+
+/**
+ * Get TUS-specific auth headers for Supabase Storage uploads
+ */
+export async function getTusAuthHeaders() {
+    const client = createSPAClient();
+    const { data: { session }, error } = await client.auth.getSession();
+    
+    if (error || !session) {
+        throw new Error('Authentication required for file upload');
+    }
+
+    return {
+        Authorization: `Bearer ${session.access_token}`,
+        'x-upsert': 'false'
+    };
+}
+
+/**
+ * Get current user session for TUS uploads
+ */
+export async function getCurrentSession() {
+    const client = createSPAClient();
+    const { data: { session }, error } = await client.auth.getSession();
+    
+    if (error) {
+        throw new Error(`Auth error: ${error.message}`);
+    }
+    
+    return session;
+}
+
+/**
+ * Refresh auth token if needed for long uploads
+ */
+export async function refreshAuthToken() {
+    const client = createSPAClient();
+    const { data, error } = await client.auth.refreshSession();
+    
+    if (error) {
+        throw new Error(`Token refresh failed: ${error.message}`);
+    }
+    
+    return data.session;
+}

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { 
   getCourseMaterials, 
   addMaterial, 
-  deleteMaterialWithFile, 
-  uploadMaterialFile,
+  deleteMaterialWithFile,
   getCourseTopics
 } from '@/lib/supabase/materials'
 import { getCourse } from '@/lib/supabase/courses'
@@ -71,49 +70,25 @@ export async function POST(
       )
     }
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-    const topicTags = formData.get('topicTags') as string
+    // Parse JSON body for TUS upload completion
+    const body = await request.json()
+    const { file_name, file_path, file_size, mime_type, topic_tags } = body
 
-    if (!file) {
+    if (!file_name || !file_path || !file_size || !mime_type) {
       return NextResponse.json(
-        { error: 'File is required' },
+        { error: 'Missing required file information' },
         { status: 400 }
       )
     }
 
-    // Generate unique filename to avoid conflicts
-    const timestamp = Date.now()
-    const fileName = `${timestamp}_${file.name}`
-
-    // Upload file to storage
-    const filePath = await uploadMaterialFile(file, courseId, fileName)
-    if (!filePath) {
-      return NextResponse.json(
-        { error: 'Failed to upload file' },
-        { status: 500 }
-      )
-    }
-
-    // Parse topic tags
-    let parsedTopicTags: string[] = []
-    if (topicTags) {
-      try {
-        parsedTopicTags = JSON.parse(topicTags)
-      } catch (error) {
-        console.error('Error parsing topic tags:', error)
-        parsedTopicTags = []
-      }
-    }
-
-    // Add material record to database
+    // Add material record to database after TUS upload completion
     const material = await addMaterial({
       course_id: courseId,
-      file_name: file.name,
-      file_path: filePath,
-      file_size: file.size,
-      mime_type: file.type,
-      topic_tags: parsedTopicTags
+      file_name,
+      file_path,
+      file_size,
+      mime_type,
+      topic_tags: topic_tags || []
     })
 
     if (!material) {

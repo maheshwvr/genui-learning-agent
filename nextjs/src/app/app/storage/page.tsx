@@ -11,9 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DragDropZone } from '@/components/ui/drag-drop-zone';
 import { TopicAssociationDropdown } from '@/components/ui/topic-association-dropdown';
 import { CourseTopicBanner } from '@/components/ui/course-topic-banner';
+import { UploadProgress } from '@/components/ui/upload-progress';
 import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus } from 'lucide-react';
 import { CourseSelector } from '@/components/ui/course-selector';
-import { sanitizeFileNameForStorage, generateUniqueFileName, validateFileType } from '@/lib/utils/file-utils';
+import { formatFileSize } from '@/lib/utils/file-utils';
+import { useTusUpload } from '@/hooks/use-tus-upload';
 
 interface Material {
   id: string;
@@ -39,13 +41,71 @@ export default function MaterialsManagementPage() {
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [topics, setTopics] = useState<{name: string; materialCount: number}[]>([]);
-    const [uploading, setUploading] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [showUploadDialog, setShowUploadDialog] = useState(false);
     const [uploadTopics, setUploadTopics] = useState<string>('');
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+
+    // TUS upload hook
+    const tusUpload = useTusUpload({
+        courseId: selectedCourse?.id || '',
+        existingFileNames: materials.map(m => m.file_name),
+        topicTags: uploadTopics
+            .split(',')
+            .map(t => t.trim())
+            .filter(t => t.length > 0),
+        onUploadComplete: async (filePath: string, file: File) => {
+            try {
+                // Add material record to database after successful upload
+                const parsedTopics = uploadTopics
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0);
+
+                // Call API to create database record after TUS upload
+                const response = await fetch(`/api/courses/${selectedCourse!.id}/materials`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_name: file.name,
+                        file_path: filePath,
+                        file_size: file.size,
+                        mime_type: file.type,
+                        topic_tags: parsedTopics
+                    }),
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to save material record');
+                }
+
+                console.log(`Upload completed for ${file.name}`);
+            } catch (error) {
+                console.error('Error adding material to database:', error);
+                setError(`Upload succeeded but failed to save record for ${file.name}`);
+            }
+        },
+        onAllUploadsComplete: async () => {
+            // Refresh materials list after all uploads complete
+            if (selectedCourse) {
+                await loadCourseMaterials(selectedCourse.id);
+                setSuccess(`${tusUpload.uploadQueue.filter(q => q.status === 'completed').length} material(s) uploaded successfully`);
+                setFileToUpload(null);
+                setUploadTopics('');
+                setShowUploadDialog(false);
+                tusUpload.clearCompleted();
+            }
+        },
+        onError: (error: string, file: File) => {
+            setError(`Upload failed for ${file.name}: ${error}`);
+        },
+        sequential: true
+    });
 
     const loadCourseMaterials = useCallback(async (courseId: string) => {
         try {
@@ -82,65 +142,9 @@ export default function MaterialsManagementPage() {
         const files = filesToUpload || (fileToUpload ? [fileToUpload] : []);
         if (files.length === 0 || !selectedCourse) return;
 
-        try {
-            setUploading(true);
-            setError('');
-
-            // Get existing filenames to avoid collisions
-            const existingNames = materials.map(m => m.file_name);
-
-            // Process each file
-            for (const file of files) {
-                // Validate file type
-                if (!validateFileType(file)) {
-                    setError(`${file.name}: Unsupported file type`);
-                    continue;
-                }
-
-                // Sanitize filename and create unique name
-                const sanitizedName = sanitizeFileNameForStorage(file.name);
-                const uniqueName = generateUniqueFileName(sanitizedName, existingNames);
-
-                const formData = new FormData();
-                // Create a new file with the sanitized name
-                const sanitizedFile = new File([file], uniqueName, { type: file.type });
-                formData.append('file', sanitizedFile);
-                
-                const parsedTopics = uploadTopics
-                    .split(',')
-                    .map(t => t.trim())
-                    .filter(t => t.length > 0);
-                
-                formData.append('topicTags', JSON.stringify(parsedTopics));
-
-                const response = await fetch(`/api/courses/${selectedCourse.id}/materials`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) {
-                    const data = await response.json();
-                    setError(data.error || `Failed to upload ${file.name}`);
-                    continue;
-                }
-
-                // Add to existing names to prevent duplicates in batch
-                existingNames.push(uniqueName);
-            }
-
-            // Refresh materials and reset form
-            await loadCourseMaterials(selectedCourse.id);
-            setSuccess(`${files.length} material${files.length > 1 ? 's' : ''} uploaded successfully`);
-            setFileToUpload(null);
-            setUploadTopics('');
-            setShowUploadDialog(false);
-        } catch (err) {
-            setError('Failed to upload material');
-            console.error('Error uploading material:', err);
-        } finally {
-            setUploading(false);
-        }
-    }, [fileToUpload, selectedCourse, uploadTopics, loadCourseMaterials, materials]);
+        // Add files to TUS upload queue
+        tusUpload.addFiles(files);
+    }, [fileToUpload, selectedCourse, tusUpload]);
 
     // Wrapper for dialog upload button
     const handleDialogUpload = useCallback(() => {
@@ -165,14 +169,6 @@ export default function MaterialsManagementPage() {
             setError('Failed to delete material');
             console.error('Error deleting material:', err);
         }
-    };
-
-    const formatFileSize = (bytes: number) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
     const formatDate = (dateString: string) => {
@@ -279,9 +275,9 @@ export default function MaterialsManagementPage() {
                                             </Button>
                                             <Button
                                                 onClick={handleDialogUpload}
-                                                disabled={!fileToUpload || uploading}
+                                                disabled={!fileToUpload || tusUpload.isUploading}
                                             >
-                                                {uploading ? (
+                                                {tusUpload.isUploading ? (
                                                     <>
                                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                                         Uploading...
@@ -310,9 +306,24 @@ export default function MaterialsManagementPage() {
 
                         <DragDropZone
                             onFilesDropped={handleFileUpload}
-                            disabled={uploading}
+                            disabled={tusUpload.isUploading}
                             className="min-h-[200px]"
+                            maxSize={100 * 1024 * 1024} // 100MB
                         >
+                            {/* Upload Progress Component */}
+                            {tusUpload.uploadQueue.length > 0 && (
+                                <div className="mb-6">
+                                    <UploadProgress
+                                        uploadQueue={tusUpload.uploadQueue}
+                                        onPause={tusUpload.pauseUpload}
+                                        onResume={tusUpload.resumeUpload}
+                                        onCancel={tusUpload.cancelUpload}
+                                        onRemove={tusUpload.removeFile}
+                                        compact={true}
+                                    />
+                                </div>
+                            )}
+
                             {loading ? (
                                 <div className="flex items-center justify-center py-8">
                                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -323,7 +334,12 @@ export default function MaterialsManagementPage() {
                                     <FileIcon className="h-12 w-12 mx-auto mb-4" />
                                     <p>No materials uploaded yet</p>
                                     <p className="text-sm">Upload your first learning material to get started</p>
-                                    <p className="text-sm mt-2 text-blue-600">Drag and drop files here or use the "Add Material" button above</p>
+                                    <p className="text-sm mt-2 text-blue-600">
+                                        Drag and drop files here or use the "Add Material" button above
+                                    </p>
+                                    <p className="text-sm mt-1 text-gray-500">
+                                        Supports files up to 100MB
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
