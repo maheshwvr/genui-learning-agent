@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Tag, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import { Tag, Plus, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Topic {
@@ -30,12 +30,15 @@ export function CourseTopicBanner({
   const [isAddingTopic, setIsAddingTopic] = useState(false)
   const [newTopicName, setNewTopicName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleAddTopic = async () => {
     if (!newTopicName.trim()) return
 
     try {
       setLoading(true)
+      setError(null) // Clear any previous errors
+      
       const response = await fetch(`/api/courses/${courseId}/topics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -46,8 +49,15 @@ export function CourseTopicBanner({
         setNewTopicName('')
         setIsAddingTopic(false)
         onTopicsChange() // Refresh the topics list
+      } else {
+        const errorData = await response.json()
+        const errorMessage = errorData.error || 'Failed to create topic'
+        setError(errorMessage)
+        console.error('Error creating topic:', errorMessage)
       }
     } catch (error) {
+      const errorMessage = 'Network error while creating topic'
+      setError(errorMessage)
       console.error('Error creating topic:', error)
     } finally {
       setLoading(false)
@@ -60,6 +70,7 @@ export function CourseTopicBanner({
     } else if (e.key === 'Escape') {
       setIsAddingTopic(false)
       setNewTopicName('')
+      setError(null) // Clear error when canceling
     }
   }
 
@@ -94,6 +105,12 @@ export function CourseTopicBanner({
               className="h-8"
               autoFocus
             />
+            {error && (
+              <div className="flex items-center space-x-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+              </div>
+            )}
             <div className="flex space-x-1">
               <Button
                 size="sm"
@@ -109,6 +126,7 @@ export function CourseTopicBanner({
                 onClick={() => {
                   setIsAddingTopic(false)
                   setNewTopicName('')
+                  setError(null) // Clear error when canceling
                 }}
                 className="h-7 px-2"
               >
@@ -207,6 +225,12 @@ export function CourseTopicBanner({
                     className="h-8"
                     autoFocus
                   />
+                  {error && (
+                    <div className="flex items-center space-x-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{error}</span>
+                    </div>
+                  )}
                   <div className="flex space-x-1">
                     <Button
                       size="sm"
@@ -222,6 +246,7 @@ export function CourseTopicBanner({
                       onClick={() => {
                         setIsAddingTopic(false)
                         setNewTopicName('')
+                        setError(null) // Clear error when canceling
                       }}
                       className="h-7 px-2"
                     >

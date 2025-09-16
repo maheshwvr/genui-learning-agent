@@ -23,7 +23,7 @@ interface TopicAssociationDropdownProps {
   materialId: string
   courseId: string
   currentTopics: string[]
-  onTopicsChange: (topics: string[]) => void
+  onTopicsChange: () => void
   className?: string
 }
 
@@ -85,6 +85,10 @@ export function TopicAssociationDropdown({
         setSelectedTopics(prev => [...prev, newTopic.name])
         setNewTopicName('')
         setIsAddingTopic(false)
+      } else {
+        const errorData = await response.json()
+        console.error('Error creating topic:', errorData.error || 'Failed to create topic')
+        // You could show this error to the user via a toast or alert
       }
     } catch (error) {
       console.error('Error creating topic:', error)
@@ -103,7 +107,7 @@ export function TopicAssociationDropdown({
       })
 
       if (response.ok) {
-        onTopicsChange(selectedTopics)
+        onTopicsChange()
         setIsOpen(false)
       }
     } catch (error) {
@@ -143,11 +147,11 @@ export function TopicAssociationDropdown({
           
           {/* Available topics */}
           <div className="max-h-32 overflow-y-auto space-y-1 mb-2">
-            {availableTopics.map((topic) => {
+            {availableTopics.map((topic, index) => {
               const isSelected = selectedTopics.includes(topic.name)
               return (
                 <div
-                  key={topic.id}
+                  key={topic.id || topic.name || index}
                   className={cn(
                     "flex items-center justify-between p-2 rounded cursor-pointer hover:bg-muted",
                     isSelected && "bg-primary/10"

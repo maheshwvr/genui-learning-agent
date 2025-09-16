@@ -175,6 +175,7 @@ export class LessonManager {
       messages: Array.isArray(lesson.messages) ? lesson.messages : [],
       course_id: lesson.course_id,
       lesson_type: lesson.lesson_type,
+      topic_selection: Array.isArray(lesson.topic_selection) ? lesson.topic_selection : [],
       created_at: lesson.created_at,
       updated_at: lesson.updated_at
     }

@@ -52,17 +52,20 @@ export async function POST(
       )
     }
 
-    const topic = await createTopic(courseId, name.trim())
-    if (!topic) {
+    const result = await createTopic(courseId, name.trim())
+    
+    if (!result.success) {
+      console.error('Failed to create topic:', result.error)
       return NextResponse.json(
-        { error: 'Failed to create topic' },
-        { status: 500 }
+        { error: result.error },
+        { status: 400 }
       )
     }
 
-    return NextResponse.json({ topic }, { status: 201 })
+    console.log('Topic created successfully:', result.data)
+    return NextResponse.json(result.data, { status: 201 })
   } catch (error) {
-    console.error('Error creating topic:', error)
+    console.error('Error in POST /api/courses/[id]/topics:', error)
     return NextResponse.json(
       { error: 'Failed to create topic' },
       { status: 500 }

@@ -45,7 +45,7 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: `Lesson ${new Date().toLocaleDateString()}`,
+          title: `Lesson ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
           lesson_type: 'general'
         })
       })
@@ -130,7 +130,7 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
                         </div>
                       </div>
                       <div className="text-xs text-gray-400">
-                        {new Date(lesson.updated_at).toLocaleDateString()}
+                        Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
                       </div>
                     </div>
                   </div>

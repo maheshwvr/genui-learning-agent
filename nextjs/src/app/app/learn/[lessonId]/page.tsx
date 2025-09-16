@@ -36,6 +36,12 @@ export default function LessonPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading, stop, append, setMessages } = useChat({
     api: '/api/chat',
     body: { lessonId },
+    onError: (error) => {
+      console.error('=== CHAT ERROR ===');
+      console.error('Chat error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    },
     onFinish: (message) => {
       console.log('=== onFinish called ===');
       console.log('Finished message:', {
@@ -85,13 +91,15 @@ export default function LessonPage() {
         console.log('Found', messagesWithMarkers.length, 'messages with assessment markers');
       }
       
-      // Deduplicate messages before saving
-      const uniqueMessages = messages.filter((msg, index, array) => {
-        return array.findIndex(m => 
-          m.content === msg.content && 
-          m.role === msg.role
-        ) === index;
-      });
+      // Deduplicate messages before saving and filter out special context messages
+      const uniqueMessages = messages
+        .filter(msg => !(msg.role === 'user' && msg.content === '__INITIAL_CONTEXT_MESSAGE__')) // Filter out initial context messages
+        .filter((msg, index, array) => {
+          return array.findIndex(m => 
+            m.content === msg.content && 
+            m.role === msg.role
+          ) === index;
+        });
 
       // Convert AI SDK messages back to enhanced ChatMessage format for storage
       const chatMessages = uniqueMessages.map((msg, index) => {
@@ -256,6 +264,18 @@ export default function LessonPage() {
           
           console.log('Setting', aiMessages.length, 'messages to chat state');
           setMessages(aiMessages);
+        } else {
+          // If lesson has no messages and has materials (course_id and topic_selection), trigger initial AI response
+          if (data.lesson.course_id && data.lesson.topic_selection) {
+            console.log('Lesson has materials but no messages, triggering initial AI response');
+            // Use append to trigger the AI with an initial message that will be handled specially by the API
+            setTimeout(() => {
+              append({
+                role: 'user',
+                content: '__INITIAL_CONTEXT_MESSAGE__'
+              });
+            }, 500);
+          }
         }
       } else if (response.status === 404) {
         setError('Lesson not found');

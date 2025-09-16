@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerLessonManager } from '@/lib/supabase/lessons'
+import { getCourseMaterialsByTopics } from '@/lib/supabase/materials'
+import { processLessonMaterials, processLessonMaterialsWithUpload } from '@/lib/ai/gemini-files'
 import { LessonInsert } from '@/lib/types'
 
 export const runtime = 'edge'
@@ -47,6 +49,33 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Process materials for AI context if course_id is provided
+    let materialContext = ''
+    let processedMaterialsCount = 0
+    
+    if (course_id) {
+      try {
+        console.log(`Processing materials for course ${course_id} with topics:`, topic_selection)
+        
+        // Get materials based on course and topic selection
+        const materials = await getCourseMaterialsByTopics(course_id, topic_selection)
+        console.log(`Found ${materials.length} materials for processing`)
+        
+        if (materials.length > 0) {
+          // Process materials through Gemini with upload
+          const result = await processLessonMaterialsWithUpload(materials)
+          materialContext = result.systemPromptAddition
+          processedMaterialsCount = result.processedMaterials.filter(m => !m.error).length
+          
+          console.log(`Successfully processed ${processedMaterialsCount} materials for lesson context`)
+        }
+      } catch (error) {
+        console.error('Error processing materials for lesson:', error)
+        // Continue with lesson creation even if material processing fails
+        materialContext = '\n\nNote: Unable to process course materials at this time.'
+      }
+    }
+
     const lessonData: Omit<LessonInsert, 'user_id'> = {
       title,
       lesson_type,
@@ -65,7 +94,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ lesson }, { status: 201 })
+    // Include material processing info in response
+    const responseData = {
+      lesson,
+      materialContext,
+      processedMaterialsCount
+    }
+
+    console.log(`Lesson created successfully with ${processedMaterialsCount} processed materials`)
+    
+    return NextResponse.json(responseData, { status: 201 })
   } catch (error) {
     console.error('Error creating lesson:', error)
     return NextResponse.json(

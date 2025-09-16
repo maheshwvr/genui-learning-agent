@@ -6,108 +6,12 @@ import { detectUncertainty, generateMCQAction, generateTFAction } from '@/lib/ai
 import { processLessonMaterialsWithUpload } from '@/lib/ai/gemini-files';
 import { getCourseMaterialsByTopics } from '@/lib/supabase/materials';
 import { createServerLessonManager } from '@/lib/supabase/lessons';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleGenAI, createPartFromUri } from '@google/genai';
 
 export const runtime = 'edge';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
-}
-
-// Function to handle streaming with files using native Google GenAI SDK
-async function streamNativeWithFiles(
-  messages: Message[], 
-  systemPrompt: string, 
-  materialFileData: Array<{ fileUri: string; mimeType: string }>,
-  shouldTriggerAssessment: boolean,
-  latestUserMessage: Message | undefined,
-  originalMessages: Message[]
-) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) {
-    throw new Error('Missing Google Generative AI API key');
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-
-  try {
-    // Prepare content with files using createPartFromUri
-    const content: any[] = [];
-    
-    // Add system prompt and user message
-    const userMessage = messages.filter(m => m.role === 'user').pop();
-    const userContent = userMessage ? userMessage.content : "Hello! I'm ready to start learning with the uploaded materials.";
-    
-    // Combine system prompt with user message
-    content.push(`${systemPrompt}\n\nUser: ${userContent}\n\nPlease analyze the uploaded course materials and provide a helpful response.`);
-    
-    // Add files using createPartFromUri
-    materialFileData.forEach(fileData => {
-      console.log(`Adding file to content: ${fileData.fileUri} (${fileData.mimeType})`);
-      const filePart = createPartFromUri(fileData.fileUri, fileData.mimeType);
-      content.push(filePart);
-    });
-
-    console.log(`Generating content with ${materialFileData.length} files using GoogleGenAI`);
-
-    // Use GoogleGenAI to generate content with files
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: content,
-    });
-
-    const responseText = response.text;
-    if (!responseText) {
-      throw new Error('No response text generated');
-    }
-    
-    console.log('Generated response with file content:', responseText.substring(0, 200) + '...');
-
-    // Create a mock streamText result to be compatible with useChat
-    const mockStreamResult = {
-      toDataStreamResponse: () => {
-        const encoder = new TextEncoder();
-        const stream = new ReadableStream({
-          start(controller) {
-            try {
-              // Send the complete response as a single chunk in AI SDK format
-              const textChunk = `0:"${responseText.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"\n`;
-              controller.enqueue(encoder.encode(textChunk));
-              controller.close();
-            } catch (error) {
-              console.error('Error creating mock stream:', error);
-              controller.error(error);
-            }
-          }
-        });
-
-        return new Response(stream, {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Vercel-AI-Data-Stream': 'v1',
-          },
-        });
-      }
-    };
-
-    return mockStreamResult.toDataStreamResponse();
-
-  } catch (error) {
-    console.error('Error with GoogleGenAI file processing:', error);
-    
-    // Fall back to regular AI SDK without files
-    console.log('Falling back to AI SDK without files...');
-    return streamText({
-      model: google('gemini-2.5-flash-lite'),
-      temperature: 0.5,
-      topP: 0.8,
-      topK: 40,
-      messages: messages,
-      system: systemPrompt,
-    }).toTextStreamResponse();
-  }
 }
 
 // Fresh chat function - no persistence, each request is independent
@@ -120,7 +24,6 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
   // Process messages and handle initial context
   let processedMessages = [...messages];
   let systemPrompt = LEARNING_SYSTEM_PROMPT;
-  let materialFileData: Array<{ fileUri: string; mimeType: string }> = [];
   
   // If we have a lessonId, get the course materials for context (but no persistence)
   if (lessonId) {
@@ -140,9 +43,6 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
           
           // Process materials but don't persist them
           const materialResult = await processLessonMaterialsWithUpload(lessonMaterials);
-          
-          // Store the file URIs for the model
-          materialFileData = materialResult.materialFileData;
           
           // Add materials context to system prompt for this request only
           let materialsContext = '\n\nCourse Materials for this session:\n';
@@ -171,45 +71,11 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
     console.log('Added default greeting message');
   }
 
-  // Add uploaded files reference to the conversation
-  if (materialFileData.length > 0 && processedMessages.length > 0) {
-    console.log(`Adding ${materialFileData.length} uploaded files to conversation context`);
-    
-    // Find the first user message and modify it to include file references
-    const firstUserMessageIndex = processedMessages.findIndex(m => m.role === 'user');
-    if (firstUserMessageIndex !== -1) {
-      const firstUserMessage = processedMessages[firstUserMessageIndex];
-      
-      // Add explicit file URIs that Gemini can access
-      const fileInstructions = materialFileData.map((fileData, index) => 
-        `File ${index + 1}: ${fileData.fileUri} (${fileData.mimeType})`
-      ).join('\n');
-      
-      processedMessages[firstUserMessageIndex] = {
-        ...firstUserMessage,
-        content: `${firstUserMessage.content}
-
-SYSTEM: Access these uploaded Google File API URIs for course content analysis:
-${fileInstructions}
-
-Please analyze the content from these files when answering questions about the course material.`
-      };
-      
-      console.log(`Added ${materialFileData.length} file URIs to first user message`);
-    }
-  }
-
   // Get the latest user message for uncertainty detection
   const latestUserMessage = messages.filter((m: Message) => m.role === 'user').pop();
   const shouldTriggerAssessment = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
 
   console.log('Should trigger assessment:', shouldTriggerAssessment);
-
-  // If we have uploaded files, use the native Google Generative AI SDK for proper file support
-  if (materialFileData.length > 0) {
-    console.log(`Using native Google AI SDK for conversation with ${materialFileData.length} files`);
-    return await streamNativeWithFiles(processedMessages, systemPrompt, materialFileData, shouldTriggerAssessment, latestUserMessage, messages);
-  }
 
   const result = await streamText({
     model: google('gemini-2.5-flash-lite'),
@@ -218,15 +84,6 @@ Please analyze the content from these files when answering questions about the c
     topK: 40,
     messages: processedMessages,
     system: `${systemPrompt}
-
-${materialFileData.length > 0 ? `
-IMPORTANT: You have access to ${materialFileData.length} uploaded files containing course materials. These files have been uploaded to the Google File API and are available for analysis. The file URIs are included in the user's message. When users ask questions about the course content, you should analyze and reference the specific content from these uploaded files.
-
-Files available:
-${materialFileData.map((file, i) => `${i + 1}. URI: ${file.fileUri} (${file.mimeType})`).join('\n')}
-
-These are Google File API URIs that you can access directly. Use the content from these files to provide accurate, contextual responses about the course material.
-` : ''}
 
 You have access to TWO assessment tools that create interactive learning content:
 

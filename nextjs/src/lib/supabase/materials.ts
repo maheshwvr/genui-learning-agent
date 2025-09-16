@@ -285,3 +285,29 @@ export async function updateMaterialTopics(materialId: string, topics: string[])
     return false
   }
 }
+
+/**
+ * Update material with Google file URI for caching
+ */
+export async function updateMaterialGoogleUri(materialId: string, googleFileUri: string): Promise<boolean> {
+  try {
+    const supabase = await getSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { error } = await (supabase as any)
+      .from('materials')
+      .update({ 
+        google_file_uri: googleFileUri,
+        google_uploaded_at: new Date().toISOString()
+      })
+      .eq('id', materialId)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error updating material Google URI:', error)
+    return false
+  }
+}

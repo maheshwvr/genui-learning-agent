@@ -9,7 +9,7 @@ import {
     X,
     ChevronDown,
     LogOut,
-    Key, FolderInput, LucideListTodo, BookOpen,
+    Key, FolderInput, LucideListTodo, BookOpen, History,
 } from 'lucide-react';
 import { useGlobal, getInitials, getDisplayName } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
@@ -42,6 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { name: 'Materials', href: '/app/storage', icon: FolderInput },
         { name: 'Tasks', href: '/app/table', icon: LucideListTodo },
         { name: 'Learn', href: '/app/learn', icon: BookOpen },
+        { name: 'Lessons', href: '/app/lessons', icon: History },
         { name: 'Settings', href: '/app/user-settings', icon: User },
     ];
 
