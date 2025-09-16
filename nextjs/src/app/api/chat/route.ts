@@ -11,6 +11,9 @@ import { GoogleGenAI, createPartFromUri } from '@google/genai';
 
 export const runtime = 'edge';
 
+// Request deduplication map - using lesson ID as primary key
+const requestMap = new Map<string, { timestamp: number; promise: Promise<Response>; processing: boolean }>();
+
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -122,14 +125,24 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
   let systemPrompt = LEARNING_SYSTEM_PROMPT;
   let materialFileData: Array<{ fileUri: string; mimeType: string }> = [];
   
-  // If we have a lessonId, get the course materials for context (but no persistence)
-  if (lessonId) {
+  // Filter out special context messages that shouldn't be sent to the AI
+  processedMessages = processedMessages.filter(msg => 
+    !(msg.role === 'user' && msg.content === '__INITIAL_CONTEXT_MESSAGE__')
+  );
+  
+  // Only load materials once per conversation - check if any previous assistant messages already have material context
+  const hasAssistantResponses = messages.some(msg => msg.role === 'assistant');
+  const shouldLoadMaterials = lessonId && !hasAssistantResponses;
+  
+  console.log(`Messages: ${messages.length}, Has assistant responses: ${hasAssistantResponses}, Should load materials: ${shouldLoadMaterials}`);
+  
+  if (shouldLoadMaterials) {
     try {
       const lessonManager = await createServerLessonManager();
       const lesson = await lessonManager.getLesson(lessonId);
       
       if (lesson && lesson.course_id && Array.isArray(lesson.topic_selection)) {
-        console.log('Loading course materials for fresh session');
+        console.log('Loading course materials for first message of fresh session');
         console.log('Course:', lesson.course_id, 'Topics:', lesson.topic_selection);
         
         // Get materials based on course and topic selection
@@ -158,6 +171,8 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
       console.error('Error loading course materials:', error);
       // Continue without materials if there's an error
     }
+  } else if (lessonId && hasAssistantResponses) {
+    console.log('Skipping material loading for subsequent message in lesson:', lessonId);
   }
 
   // Add default greeting if no messages
@@ -365,8 +380,22 @@ export async function POST(req: Request) {
     const { messages, lessonId }: { messages: Message[]; lessonId?: string } = body;
     
     console.log('=== CHAT API CALLED ===');
+    console.log('Timestamp:', new Date().toISOString());
     console.log('Received messages:', messages.length);
     console.log('Lesson ID:', lessonId);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Last message:', messages[messages.length - 1]?.content?.substring(0, 100) + '...');
+
+    // Create a unique key based primarily on lesson ID to catch rapid duplicates
+    const requestKey = lessonId || 'no-lesson';
+    
+    // Check for duplicate requests for this lesson within 10 seconds
+    const existing = requestMap.get(requestKey);
+    const now = Date.now();
+    if (existing && (now - existing.timestamp) < 10000) {
+      console.log('⚠️  DUPLICATE REQUEST DETECTED for lesson:', requestKey, '- returning existing promise');
+      return existing.promise;
+    }
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       console.error('Missing GOOGLE_GENERATIVE_AI_API_KEY');
@@ -376,8 +405,25 @@ export async function POST(req: Request) {
       });
     }
 
+    // Create and store the promise for this request
+    const responsePromise = streamFreshChat(messages, lessonId).finally(() => {
+      // Mark this request as completed
+      const entry = requestMap.get(requestKey);
+      if (entry) {
+        entry.processing = false;
+      }
+    });
+    requestMap.set(requestKey, { timestamp: now, promise: responsePromise, processing: true });
+    
+    // Clean up old entries (older than 15 seconds)
+    for (const [key, entry] of requestMap.entries()) {
+      if (now - entry.timestamp > 15000) {
+        requestMap.delete(key);
+      }
+    }
+
     // Always use fresh chat - no persistence regardless of lessonId
-    return streamFreshChat(messages, lessonId);
+    return responsePromise;
 
   } catch (error) {
     console.error('API Error:', error);

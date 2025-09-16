@@ -31,19 +31,34 @@ export default function LessonPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingFromDB, setIsLoadingFromDB] = useState(false);
+  const [initialResponseTriggered, setInitialResponseTriggered] = useState(false);
+  const [isProcessingRequest, setIsProcessingRequest] = useState(false);
 
   // Initialize chat with lesson messages
   const { messages, input, handleInputChange, handleSubmit, isLoading: isChatLoading, stop, append, setMessages } = useChat({
     api: '/api/chat',
-    body: { lessonId },
+    body: lessonId ? { lessonId } : {},
     onError: (error) => {
-      console.error('=== CHAT ERROR ===');
-      console.error('Chat error:', error);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+      try {
+        console.log('=== CHAT ERROR ===');
+        setIsProcessingRequest(false); // Reset the processing flag on error
+        
+        // Convert error to a simple object to avoid circular references
+        const errorInfo = {
+          name: error?.name || 'Unknown',
+          message: error?.message || 'No message',
+          stack: error?.stack || 'No stack trace'
+        };
+        
+        console.log('Error details:', errorInfo);
+      } catch (handlingError) {
+        console.log('Error in error handler:', String(handlingError));
+        setIsProcessingRequest(false); // Still reset the flag
+      }
     },
     onFinish: (message) => {
       console.log('=== onFinish called ===');
+      setIsProcessingRequest(false); // Reset the processing flag
       console.log('Finished message:', {
         role: message.role,
         contentLength: message.content.length,
@@ -75,6 +90,22 @@ export default function LessonPage() {
       }, 1000);
     }
   });
+
+  // Wrapper around append to add logging and prevent duplicates
+  const appendWithLogging = useCallback((message: { role: 'user' | 'assistant'; content: string }) => {
+    if (isProcessingRequest) {
+      console.log('⚠️ Request already in progress, ignoring append call');
+      return;
+    }
+    
+    console.log('=== APPEND CALLED ===');
+    console.log('Message content:', message.content.substring(0, 100) + '...');
+    console.log('Current messages count:', messages.length);
+    console.log('Stack trace:', new Error().stack);
+    
+    setIsProcessingRequest(true);
+    append(message);
+  }, [append, isProcessingRequest]);
 
   // Save current messages to lesson
   const saveMessagesToLesson = useCallback(async () => {
@@ -217,6 +248,8 @@ export default function LessonPage() {
     
     setIsLoading(true);
     setIsLoadingFromDB(true);
+    setInitialResponseTriggered(false); // Reset the flag when fetching a new lesson
+    setIsProcessingRequest(false); // Reset processing flag when switching lessons
     try {
       const response = await fetch(`/api/lessons/${lessonId}`);
       if (response.ok) {
@@ -266,11 +299,12 @@ export default function LessonPage() {
           setMessages(aiMessages);
         } else {
           // If lesson has no messages and has materials (course_id and topic_selection), trigger initial AI response
-          if (data.lesson.course_id && data.lesson.topic_selection) {
+          if (data.lesson.course_id && data.lesson.topic_selection && !initialResponseTriggered) {
             console.log('Lesson has materials but no messages, triggering initial AI response');
+            setInitialResponseTriggered(true);
             // Use append to trigger the AI with an initial message that will be handled specially by the API
             setTimeout(() => {
-              append({
+              appendWithLogging({
                 role: 'user',
                 content: '__INITIAL_CONTEXT_MESSAGE__'
               });
@@ -398,7 +432,7 @@ export default function LessonPage() {
           handleSubmit={handleSubmit}
           isGenerating={isChatLoading}
           stop={stop}
-          append={append}
+          append={appendWithLogging}
           updateMessage={(messageId, updates) => {
             setMessages(currentMessages => 
               currentMessages.map(msg => 

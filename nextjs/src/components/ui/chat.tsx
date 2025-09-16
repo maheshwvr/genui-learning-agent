@@ -433,6 +433,9 @@ export function Chat({
 
   // State to track if we're currently generating an assessment (MCQ or TF)
   const [assessmentGeneratingType, setAssessmentGeneratingType] = useState<'mcq' | 'tf' | null>(null)
+  
+  // Track processed assessments to prevent duplicate submissions
+  const [processedAssessments, setProcessedAssessments] = useState<Set<string>>(new Set())
 
   // Check if the AI is currently generating an assessment by looking at the latest message
   useEffect(() => {
@@ -670,11 +673,15 @@ export function Chat({
                                   
                                   // Also send summary message for AI context
                                   if (append) {
-                                    const summary = generateMCQSummary(mcqData, selectedOption, isCorrect);
-                                    append({
-                                      role: 'user',
-                                      content: summary
-                                    });
+                                    const assessmentKey = `mcq-${message.id}-${selectedOption.id}`;
+                                    if (!processedAssessments.has(assessmentKey)) {
+                                      setProcessedAssessments(prev => new Set(prev).add(assessmentKey));
+                                      const summary = generateMCQSummary(mcqData, selectedOption, isCorrect);
+                                      append({
+                                        role: 'user',
+                                        content: summary
+                                      });
+                                    }
                                   }
                                 }}
                                 className="my-2"
@@ -729,11 +736,15 @@ export function Chat({
                                   
                                   // Also send summary message for AI context
                                   if (append) {
-                                    const summary = generateTFSummary(tfData, results);
-                                    append({
-                                      role: 'user',
-                                      content: summary
-                                    });
+                                    const assessmentKey = `tf-${message.id}-${JSON.stringify(results.map(r => r.statementId + r.isCorrect))}`;
+                                    if (!processedAssessments.has(assessmentKey)) {
+                                      setProcessedAssessments(prev => new Set(prev).add(assessmentKey));
+                                      const summary = generateTFSummary(tfData, results);
+                                      append({
+                                        role: 'user',
+                                        content: summary
+                                      });
+                                    }
                                   }
                                 }}
                                 className="my-2"
