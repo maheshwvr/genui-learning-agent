@@ -52,6 +52,8 @@ async function streamNativeWithFiles(
       content.push(filePart);
     });
 
+    console.log(`Generating content with ${materialFileData.length} files using GoogleGenAI`);
+
     // Use GoogleGenAI to generate content with files
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -62,6 +64,8 @@ async function streamNativeWithFiles(
     if (!responseText) {
       throw new Error('No response text generated');
     }
+    
+    console.log('Generated response with file content:', responseText.substring(0, 200) + '...');
 
     // Create a mock streamText result to be compatible with useChat
     const mockStreamResult = {
@@ -96,6 +100,7 @@ async function streamNativeWithFiles(
     console.error('Error with GoogleGenAI file processing:', error);
     
     // Fall back to regular AI SDK without files
+    console.log('Falling back to AI SDK without files...');
     return streamText({
       model: google('gemini-2.5-flash-lite'),
       temperature: 0.5,
@@ -186,6 +191,8 @@ ${fileInstructions}
 
 Please analyze the content from these files when answering questions about the course material.`
       };
+      
+      console.log(`Added ${materialFileData.length} file URIs to first user message`);
     }
   }
 
@@ -193,8 +200,11 @@ Please analyze the content from these files when answering questions about the c
   const latestUserMessage = messages.filter((m: Message) => m.role === 'user').pop();
   const shouldTriggerAssessment = latestUserMessage ? await detectUncertainty(latestUserMessage.content) : false;
 
+  console.log('Should trigger assessment:', shouldTriggerAssessment);
+
   // If we have uploaded files, use the native Google Generative AI SDK for proper file support
   if (materialFileData.length > 0) {
+    console.log(`Using native Google AI SDK for conversation with ${materialFileData.length} files`);
     return await streamNativeWithFiles(processedMessages, systemPrompt, materialFileData, shouldTriggerAssessment, latestUserMessage, messages);
   }
 
@@ -262,6 +272,8 @@ REMEMBER: This is a fresh conversation with no previous context. Introduce topic
           reason: z.string().describe('Why this MCQ would be helpful')
         }),
         execute: async ({ topic, difficulty, reason }) => {
+          console.log('MCQ Tool called! Topic:', topic, 'Difficulty:', difficulty, 'Reason:', reason);
+          
           try {
             const mcq = await generateMCQAction({
               topic,
@@ -299,6 +311,8 @@ REMEMBER: This is a fresh conversation with no previous context. Introduce topic
           reason: z.string().describe('Why these T/F statements would be helpful')
         }),
         execute: async ({ topic, difficulty, reason }) => {
+          console.log('T/F Tool called! Topic:', topic, 'Difficulty:', difficulty, 'Reason:', reason);
+          
           try {
             const tf = await generateTFAction({
               topic,
@@ -348,6 +362,7 @@ export async function POST(req: Request) {
     const existing = requestMap.get(requestKey);
     const now = Date.now();
     if (existing && (now - existing.timestamp) < 10000) {
+      console.log('⚠️  DUPLICATE REQUEST DETECTED for lesson:', requestKey, '- returning existing promise');
       return existing.promise;
     }
 

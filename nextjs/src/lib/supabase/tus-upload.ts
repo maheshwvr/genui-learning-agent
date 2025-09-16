@@ -59,11 +59,16 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
     throw new Error('Authentication required for file upload')
   }
 
+  console.log('Creating TUS upload for file:', options.file.name, 'Size:', options.file.size)
+
   const { file, courseId, existingFileNames = [] } = options
   
   // Generate unique filename to avoid collisions
   const uniqueFileName = generateUniqueFileName(file.name, existingFileNames)
   const filePath = generateSupabaseFilePath(session.user.id, courseId, uniqueFileName)
+
+  console.log('Upload path:', filePath)
+  console.log('TUS endpoint:', getSupabaseTusEndpoint('materials'))
 
   // Create TUS upload instance
   const upload = new Upload(file, {
@@ -91,6 +96,7 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
     
     // Progress callback
     onProgress: (bytesUploaded: number, bytesTotal: number) => {
+      console.log(`Upload progress: ${bytesUploaded}/${bytesTotal} bytes`)
       options.onProgress?.(bytesUploaded, bytesTotal)
     },
     
@@ -102,6 +108,7 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
     
     // Success callback
     onSuccess: () => {
+      console.log('TUS upload completed successfully for:', file.name)
       options.onSuccess?.(filePath)
     },
     
@@ -114,6 +121,8 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
       // Log response for debugging
       if (res.status >= 400) {
         console.error('TUS upload response error:', res.status, res.statusText)
+      } else {
+        console.log('TUS response:', res.status)
       }
     }
   })
