@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { Chat } from '@/components/ui/chat';
+import { PageHeader } from '@/components/ui/page-header';
 import { Lesson, ChatMessage } from '@/lib/types';
 
 // Type definitions for AI messages with tool invocations
@@ -403,11 +404,10 @@ export default function LessonPage() {
     <div className="h-full flex flex-col">
       <div className="flex-1 flex flex-col px-4">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold">{lesson.title}</h1>
-          <p className="text-sm text-gray-500">
-            Created: {new Date(lesson.created_at).toLocaleDateString()} • 
-            Last updated: {new Date(lesson.updated_at).toLocaleDateString()}
-          </p>
+          <PageHeader
+            title={lesson.title}
+            description={`Created: ${new Date(lesson.created_at).toLocaleDateString()} • Last updated: ${new Date(lesson.updated_at).toLocaleDateString()}`}
+          />
         </div>
         
         <Chat

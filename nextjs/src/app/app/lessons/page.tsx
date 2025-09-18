@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import LessonSelector from '@/components/ui/lesson-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { BookOpen, Plus } from 'lucide-react';
 
 export default function LessonsPage() {
@@ -24,24 +25,20 @@ export default function LessonsPage() {
     <div className="h-full flex flex-col">
       <div className="flex-none p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <BookOpen className="h-6 w-6" />
-            <h1 className="text-2xl font-bold">Lesson History</h1>
-          </div>
-          
-          <Button
-            onClick={handleCreateNew}
-            className="flex items-center space-x-2"
+        <div className="mb-6">
+          <PageHeader
+            title="Lesson History"
+            description="View and continue your previous learning sessions, or start a new one."
           >
-            <Plus className="h-4 w-4" />
-            <span>New Lesson</span>
-          </Button>
+            <Button
+              onClick={handleCreateNew}
+              className="flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Lesson</span>
+            </Button>
+          </PageHeader>
         </div>
-        
-        <p className="text-muted-foreground mb-6">
-          View and continue your previous learning sessions, or start a new one.
-        </p>
       </div>
       
       <div className="flex-1 px-4 pb-4">

@@ -8,6 +8,7 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import {
     Dialog,
     DialogContent,
@@ -201,14 +202,13 @@ export default function TaskManagementPage() {
 
     return (
         <div className="space-y-6 p-6">
+            <PageHeader
+                title="Task Management"
+                description="Manage your tasks and to-dos"
+            >
+                <CreateTaskDialog onTaskCreated={loadTasks} />
+            </PageHeader>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Task Management</CardTitle>
-                        <CardDescription>Manage your tasks and to-dos</CardDescription>
-                    </div>
-                    <CreateTaskDialog onTaskCreated={loadTasks} />
-                </CardHeader>
                 <CardContent>
                     {error && (
                         <Alert variant="destructive" className="mb-6">

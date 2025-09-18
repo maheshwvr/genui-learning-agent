@@ -6,6 +6,7 @@ import { CourseSelector } from '@/components/ui/course-selector';
 import { TopicSelector } from '@/components/ui/topic-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { BookOpen, Play, ArrowLeft, Tag } from 'lucide-react';
 
 interface Course {
@@ -85,15 +86,29 @@ export default function LearnPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-none p-4">
-        {/* Navigation Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <BookOpen className="h-6 w-6" />
-            <h1 className="text-2xl font-bold">Learn</h1>
-          </div>
-          
-          {/* Navigation actions */}
-          <div className="flex items-center space-x-2">
+        {/* Header */}
+        <div className="mb-4">
+          <PageHeader
+            title="Learn"
+            description={
+              <div className="space-y-2">
+                <p>{currentStep === 'course-selection' 
+                  ? "Select a course and topics to start your learning session"
+                  : "Choose specific topics from your selected course"
+                }</p>
+                {/* Step indicator */}
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <span className={currentStep === 'course-selection' ? 'text-primary font-medium' : ''}>
+                    1. Select Course
+                  </span>
+                  <span>→</span>
+                  <span className={currentStep === 'topic-selection' ? 'text-primary font-medium' : ''}>
+                    2. Choose Topics & Start New Session
+                  </span>
+                </div>
+              </div>
+            }
+          >
             {currentStep !== 'course-selection' && (
               <Button
                 variant="outline"
@@ -105,18 +120,7 @@ export default function LearnPage() {
                 <span>Back</span>
               </Button>
             )}
-          </div>
-        </div>
-
-        {/* Step indicator */}
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
-          <span className={currentStep === 'course-selection' ? 'text-primary font-medium' : ''}>
-            1. Select Course
-          </span>
-          <span>→</span>
-          <span className={currentStep === 'topic-selection' ? 'text-primary font-medium' : ''}>
-            2. Choose Topics & Start New Session
-          </span>
+          </PageHeader>
         </div>
       </div>
       

@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -183,10 +184,10 @@ export default function MaterialsManagementPage() {
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Materials Management</h1>
-                <p className="text-muted-foreground">
-                    Organize your learning materials by courses and topics for AI-assisted learning.
-                </p>
+                <PageHeader
+                    title="Materials Management"
+                    description="Organize your learning materials by courses and topics for AI-assisted learning."
+                />
             </div>
 
             {error && (

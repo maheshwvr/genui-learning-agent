@@ -3,6 +3,7 @@ import React from 'react';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { getFirstName } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { CalendarDays, Settings, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,15 +29,15 @@ export default function DashboardContent() {
 
     return (
         <div className="space-y-6 p-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Welcome, {getFirstName(user)}!</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
+            <PageHeader
+                title={`Welcome, ${getFirstName(user)}!`}
+                description={
+                    <div className="flex items-center gap-2">
                         <CalendarDays className="h-4 w-4" />
                         Member for {daysSinceRegistration} days
-                    </CardDescription>
-                </CardHeader>
-            </Card>
+                    </div>
+                }
+            />
 
             {/* Quick Actions */}
             <Card>

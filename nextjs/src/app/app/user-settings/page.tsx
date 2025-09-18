@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PageHeader } from '@/components/ui/page-header';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
 import { Key, User, CheckCircle } from 'lucide-react';
@@ -102,12 +103,10 @@ export default function UserSettingsPage() {
 
     return (
         <div className="space-y-6 p-6">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">User Settings</h1>
-                <p className="text-muted-foreground">
-                    Manage your account settings and preferences
-                </p>
-            </div>
+            <PageHeader
+                title="User Settings"
+                description="Manage your account settings and preferences"
+            />
 
             {error && (
                 <Alert variant="destructive">
