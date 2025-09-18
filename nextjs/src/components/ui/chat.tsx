@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollToBottomButton } from '@/components/ui/scroll-to-bottom-button'
 import { Bot, Send, User } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { type Message } from 'ai'
@@ -656,13 +657,9 @@ export function Chat({
   }, [])
 
   // Scroll when new messages are added or content changes
-  const lastMessageLengthRef = useRef(0);
   useEffect(() => {
-    if (messages.length > lastMessageLengthRef.current) {
-      lastMessageLengthRef.current = messages.length;
-      scrollToBottom();
-    } else {
-      lastMessageLengthRef.current = messages.length;
+    if (messages.length > 0) {
+      scrollToBottom()
     }
   }, [messages.length, scrollToBottom])
 
@@ -677,7 +674,8 @@ export function Chat({
   }, [messages, isGenerating])
 
   return (
-    <Card className="flex flex-col flex-1 min-h-0">
+    <>
+      <Card className="flex flex-col flex-1 min-h-0">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Learn</CardTitle>
@@ -1124,5 +1122,13 @@ export function Chat({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Scroll to bottom button */}
+      <ScrollToBottomButton
+        containerRef={containerRef}
+        onScrollToBottom={scrollToBottom}
+        threshold={200}
+      />
+    </>
   )
 }
