@@ -201,13 +201,18 @@ export default function TaskManagementPage() {
     }
 
     return (
-        <div className="space-y-6 p-6">
-            <PageHeader
-                title="Task Management"
-                description="Manage your tasks and to-dos"
-            >
-                <CreateTaskDialog onTaskCreated={loadTasks} />
-            </PageHeader>
+        <div className="h-full flex flex-col">
+            <div className="flex-none p-4">
+                <div className="mb-4">
+                    <PageHeader
+                        title="Task Management"
+                        description="Manage your tasks and to-dos"
+                    >
+                        <CreateTaskDialog onTaskCreated={loadTasks} />
+                    </PageHeader>
+                </div>
+            </div>
+            <div className="flex-1 px-4 pb-4 space-y-6">
             <Card>
                 <CardContent>
                     {error && (
@@ -312,6 +317,7 @@ export default function TaskManagementPage() {
                 </CardContent>
             </Card>
             <Confetti active={showConfetti} />
+            </div>
         </div>
     );
 }

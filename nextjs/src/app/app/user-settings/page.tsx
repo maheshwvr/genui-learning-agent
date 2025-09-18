@@ -102,11 +102,16 @@ export default function UserSettingsPage() {
 
 
     return (
-        <div className="space-y-6 p-6">
-            <PageHeader
-                title="User Settings"
-                description="Manage your account settings and preferences"
-            />
+        <div className="h-full flex flex-col">
+            <div className="flex-none p-4">
+                <div className="mb-4">
+                    <PageHeader
+                        title="User Settings"
+                        description="Manage your account settings and preferences"
+                    />
+                </div>
+            </div>
+            <div className="flex-1 px-4 pb-4 space-y-6">
 
             {error && (
                 <Alert variant="destructive">
@@ -228,6 +233,7 @@ export default function UserSettingsPage() {
                             setSuccess('Two-factor authentication settings updated successfully');
                         }}
                     />
+                </div>
                 </div>
             </div>
         </div>

@@ -25,7 +25,7 @@ export default function LessonsPage() {
     <div className="h-full flex flex-col">
       <div className="flex-none p-4">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4">
           <PageHeader
             title="Lesson History"
             description="View and continue your previous learning sessions, or start a new one."

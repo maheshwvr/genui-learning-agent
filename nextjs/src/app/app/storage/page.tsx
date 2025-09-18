@@ -182,29 +182,32 @@ export default function MaterialsManagementPage() {
         });
     };
     return (
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
-            <div className="mb-8">
-                <PageHeader
-                    title="Materials Management"
-                    description="Organize your learning materials by courses and topics for AI-assisted learning."
-                />
+        <div className="h-full flex flex-col">
+            <div className="flex-none p-4">
+                <div className="mb-4">
+                    <PageHeader
+                        title="Materials Management"
+                        description="Organize your learning materials by courses and topics for AI-assisted learning."
+                    />
+                </div>
             </div>
+            <div className="flex-1 px-4 pb-4 space-y-6">
 
             {error && (
-                <Alert className="mb-6 border-destructive bg-destructive/10">
+                <Alert className="border-destructive bg-destructive/10">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-destructive">{error}</AlertDescription>
                 </Alert>
             )}
 
             {success && (
-                <Alert className="mb-6 border-green-500 bg-green-50">
+                <Alert className="border-green-500 bg-green-50">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-green-800">{success}</AlertDescription>
                 </Alert>
             )}
 
-            <div className="mb-8">
+            <div className="space-y-6">
                 <CourseSelector
                     onCourseSelect={handleCourseSelect}
                     selectedCourseId={selectedCourse?.id}
@@ -415,6 +418,7 @@ export default function MaterialsManagementPage() {
                     </CardContent>
                 </Card>
             )}
+            </div>
         </div>
     );
 }

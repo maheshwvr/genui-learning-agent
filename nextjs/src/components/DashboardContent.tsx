@@ -28,16 +28,21 @@ export default function DashboardContent() {
     const daysSinceRegistration = getDaysSinceRegistration();
 
     return (
-        <div className="space-y-6 p-6">
-            <PageHeader
-                title={`Welcome, ${getFirstName(user)}!`}
-                description={
-                    <div className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4" />
-                        Member for {daysSinceRegistration} days
-                    </div>
-                }
-            />
+        <div className="h-full flex flex-col">
+            <div className="flex-none p-4">
+                <div className="mb-4">
+                    <PageHeader
+                        title={`Welcome, ${getFirstName(user)}!`}
+                        description={
+                            <div className="flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4" />
+                                Member for {daysSinceRegistration} days
+                            </div>
+                        }
+                    />
+                </div>
+            </div>
+            <div className="flex-1 px-4 pb-4 space-y-6">
 
             {/* Quick Actions */}
             <Card>
@@ -75,6 +80,7 @@ export default function DashboardContent() {
                     </div>
                 </CardContent>
             </Card>
+            </div>
         </div>
     );
 }
