@@ -491,36 +491,35 @@ export function Chat({
   }, [messages, isGenerating])
 
   return (
-    <div className="space-y-6 p-6">
-      <Card className="flex flex-col flex-1 min-h-0">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Learn</CardTitle>
-            <CardDescription>Ask questions, explore topics, and learn with the help of AI</CardDescription>
-          </div>
-          {isGenerating && stop && (
-            <Button variant="outline" size="sm" onClick={stop}>
-              Stop
-            </Button>
-          )}
-        </CardHeader>
-        
-        <CardContent className="flex flex-col flex-1 min-h-0 p-0">
-          <ScrollArea 
-            ref={containerRef} 
-            className="flex-1 p-4" 
-            style={{ 
-              scrollBehavior: 'smooth',
-              scrollPaddingBottom: '1rem'
-            }}
-          >
-            <div className="space-y-4" style={{ scrollMarginBottom: '1rem' }}>
-              {messages.filter(m => !(m.role === 'user' && (m.content.startsWith('SILENT_SUMMARY:') || m.content === '__INITIAL_CONTEXT_MESSAGE__'))).length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Start learning! Ask me anything you&apos;d like to know.</p>
-                </div>
-              )}
+    <Card className="flex flex-col flex-1 min-h-0">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Learn</CardTitle>
+          <CardDescription>Ask questions, explore topics, and learn with the help of AI</CardDescription>
+        </div>
+        {isGenerating && stop && (
+          <Button variant="outline" size="sm" onClick={stop}>
+            Stop
+          </Button>
+        )}
+      </CardHeader>
+      
+      <CardContent className="flex flex-col flex-1 min-h-0 p-0">
+        <ScrollArea 
+          ref={containerRef} 
+          className="flex-1 p-4" 
+          style={{ 
+            scrollBehavior: 'smooth',
+            scrollPaddingBottom: '1rem'
+          }}
+        >
+          <div className="space-y-4" style={{ scrollMarginBottom: '1rem' }}>
+            {messages.filter(m => !(m.role === 'user' && (m.content.startsWith('SILENT_SUMMARY:') || m.content === '__INITIAL_CONTEXT_MESSAGE__'))).length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Start learning! Ask me anything you&apos;d like to know.</p>
+              </div>
+            )}
               
               {messages
                 .filter((message) => {
@@ -824,6 +823,5 @@ export function Chat({
           </div>
         </CardContent>
       </Card>
-    </div>
   )
 }

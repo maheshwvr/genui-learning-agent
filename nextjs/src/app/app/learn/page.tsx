@@ -7,6 +7,7 @@ import { TopicSelector } from '@/components/ui/topic-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { CreateCourseButton } from '@/components/ui/create-course-button';
 import { BookOpen, Play, ArrowLeft, Tag } from 'lucide-react';
 
 interface Course {
@@ -26,6 +27,12 @@ export default function LearnPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [isCreatingLesson, setIsCreatingLesson] = useState(false);
+  const [courseSelectorKey, setCourseSelectorKey] = useState(0); // For refreshing CourseSelector
+
+  // Force refresh of CourseSelector when a new course is created
+  const handleCourseCreated = () => {
+    setCourseSelectorKey(prev => prev + 1);
+  };
 
   // Handle course selection
   const handleCourseSelect = (course: Course) => {
@@ -130,9 +137,12 @@ export default function LearnPage() {
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BookOpen className="h-5 w-5" />
-                  <span>Select a Course</span>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <BookOpen className="h-5 w-5" />
+                    <span>Select a Course</span>
+                  </div>
+                  <CreateCourseButton onCourseCreated={handleCourseCreated} />
                 </CardTitle>
                 <CardDescription>
                   Choose a course to start a new learning session. The AI will use your course materials to provide contextual guidance. Each session creates a fresh conversation.
@@ -140,11 +150,13 @@ export default function LearnPage() {
               </CardHeader>
               <CardContent>
                 <CourseSelector
+                  key={courseSelectorKey}
                   onCourseSelect={handleCourseSelect}
                   selectedCourseId={selectedCourse?.id}
-                  showCreateButton={true}
+                  showCreateButton={false}
                   showMaterialCount={true}
                   showDeleteButton={false}
+                  hideCreateButton={true}
                 />
               </CardContent>
             </Card>

@@ -139,17 +139,7 @@ export function TopicSelector({
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Tag className="h-5 w-5 mr-2" />
-          Select Topics
-          {courseName && <span className="text-sm font-normal text-muted-foreground ml-2">from {courseName}</span>}
-        </CardTitle>
-        <CardDescription>
-          Choose which topics to focus on for this lesson. Selected topics will provide context for AI responses.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {/* Select All/None Controls */}
         <div className="flex flex-wrap gap-2 mb-4">
           <Button

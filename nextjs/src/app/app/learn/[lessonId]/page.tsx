@@ -402,34 +402,39 @@ export default function LessonPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 flex flex-col px-4">
+      <div className="flex-none p-4">
+        {/* Header */}
         <div className="mb-4">
           <PageHeader
             title={lesson.title}
             description={`Created: ${new Date(lesson.created_at).toLocaleDateString()} • Last updated: ${new Date(lesson.updated_at).toLocaleDateString()}`}
           />
         </div>
-        
-        <Chat
-          messages={messages}
-          input={input}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleSubmit}
-          isGenerating={isChatLoading}
-          stop={stop}
-          append={appendWithLogging}
-          updateMessage={(messageId, updates) => {
-            setMessages(currentMessages => 
-              currentMessages.map(msg => 
-                msg.id === messageId 
-                  ? { ...msg, ...updates }
-                  : msg
-              )
-            );
-            // Trigger save after a brief delay to allow state to update
-            setTimeout(() => saveMessagesToLesson(), 100);
-          }}
-        />
+      </div>
+      
+      <div className="flex-1 px-4 pb-4">
+        <div className="space-y-4">
+          <Chat
+            messages={messages}
+            input={input}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
+            isGenerating={isChatLoading}
+            stop={stop}
+            append={appendWithLogging}
+            updateMessage={(messageId, updates) => {
+              setMessages(currentMessages => 
+                currentMessages.map(msg => 
+                  msg.id === messageId 
+                    ? { ...msg, ...updates }
+                    : msg
+                )
+              );
+              // Trigger save after a brief delay to allow state to update
+              setTimeout(() => saveMessagesToLesson(), 100);
+            }}
+          />
+        </div>
       </div>
     </div>
   );

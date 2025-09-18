@@ -209,7 +209,7 @@ Please analyze the content from these files when answering questions about the c
   }
 
   const result = await streamText({
-    model: google('gemini-2.5-flash-lite'),
+    model: google('gemini-2.5-flash'),
     temperature: 0.5,
     topP: 0.8,
     topK: 40,

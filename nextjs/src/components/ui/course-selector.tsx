@@ -27,6 +27,7 @@ interface CourseSelectorProps {
   showMaterialCount?: boolean
   showDeleteButton?: boolean
   className?: string
+  hideCreateButton?: boolean // New prop to hide the create button when it's rendered elsewhere
 }
 
 export function CourseSelector({
@@ -35,7 +36,8 @@ export function CourseSelector({
   showCreateButton = true,
   showMaterialCount = true,
   showDeleteButton = false,
-  className = ''
+  className = '',
+  hideCreateButton = false
 }: CourseSelectorProps) {
   const { user, loading: userLoading } = useGlobal()
   const [courses, setCourses] = useState<Course[]>([])
@@ -153,24 +155,10 @@ export function CourseSelector({
     fetchCourses()
   }, [])
 
-  if (loading || userLoading) {
-    return (
-      <div className={`space-y-4 ${className}`}>
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Create Course Button */}
-      {showCreateButton && (
+      {/* Create Course Button - only show if not hidden */}
+      {showCreateButton && !hideCreateButton && (
         <Dialog open={showCreateDialog} onOpenChange={(open) => {
           setShowCreateDialog(open)
           if (!open) {
