@@ -36,6 +36,7 @@ export async function getTusAuthHeaders() {
 
     return {
         Authorization: `Bearer ${session.access_token}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
         'x-upsert': 'false'
     };
 }

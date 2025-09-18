@@ -44,7 +44,8 @@ export function getSupabaseTusEndpoint(bucketName: string = 'materials'): string
   if (!supabaseUrl) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured')
   }
-  return `${supabaseUrl}/storage/v1/s3/${bucketName}`
+  // Correct TUS endpoint for Supabase
+  return `${supabaseUrl}/storage/v1/upload/resumable`
 }
 
 /**
@@ -59,6 +60,12 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
     throw new Error('Authentication required for file upload')
   }
 
+  // Verify environment variables
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseAnonKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not configured')
+  }
+
   console.log('Creating TUS upload for file:', options.file.name, 'Size:', options.file.size)
 
   const { file, courseId, existingFileNames = [] } = options
@@ -69,6 +76,8 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
 
   console.log('Upload path:', filePath)
   console.log('TUS endpoint:', getSupabaseTusEndpoint('materials'))
+  console.log('Session user ID:', session.user.id)
+  console.log('Access token length:', session.access_token?.length || 0)
 
   // Create TUS upload instance
   const upload = new Upload(file, {
@@ -80,17 +89,19 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
     // Retry configuration
     retryDelays: [0, 3000, 5000, 10000, 20000],
     
-    // Metadata for Supabase
+    // Metadata for Supabase TUS upload
     metadata: {
       bucketName: 'materials',
       objectName: filePath,
-      contentType: file.type,
-      cacheControl: '3600'
+      contentType: file.type || 'application/octet-stream',
+      cacheControl: '3600',
+      filename: uniqueFileName
     },
     
-    // Authentication headers
+    // Authentication headers for Supabase TUS
     headers: {
       Authorization: `Bearer ${session.access_token}`,
+      apikey: supabaseAnonKey,
       'x-upsert': 'false'
     },
     
@@ -119,10 +130,20 @@ export async function createTusUpload(options: TusUploadOptions): Promise<Upload
     
     onAfterResponse: (req: any, res: any) => {
       // Log response for debugging
+      console.log('TUS response status:', res.status)
       if (res.status >= 400) {
-        console.error('TUS upload response error:', res.status, res.statusText)
-      } else {
-        console.log('TUS response:', res.status)
+        console.error('TUS upload response error:', {
+          status: res.status,
+          statusText: res.statusText,
+          headers: res.headers,
+          url: req.url
+        })
+        try {
+          const responseText = res.text || ''
+          console.error('Response body:', responseText)
+        } catch (e) {
+          console.error('Could not read response body:', e)
+        }
       }
     }
   })
