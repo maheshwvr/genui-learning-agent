@@ -3,10 +3,22 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Tag, Plus, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
+import { Tag, Plus, ChevronDown, ChevronRight, AlertCircle, Edit2, Trash2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface Topic {
+  id?: string
   name: string
   materialCount: number
 }
@@ -31,6 +43,13 @@ export function CourseTopicBanner({
   const [newTopicName, setNewTopicName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Edit state
+  const [editingTopicId, setEditingTopicId] = useState<string | null>(null)
+  const [editingTopicName, setEditingTopicName] = useState('')
+  
+  // Delete state
+  const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null)
 
   const handleAddTopic = async () => {
     if (!newTopicName.trim()) return
@@ -72,6 +91,85 @@ export function CourseTopicBanner({
       setNewTopicName('')
       setError(null) // Clear error when canceling
     }
+  }
+
+  const handleEditKeyDown = (e: React.KeyboardEvent, topicId: string) => {
+    if (e.key === 'Enter') {
+      handleEditTopic(topicId)
+    } else if (e.key === 'Escape') {
+      cancelEditing()
+    }
+  }
+
+  const handleEditTopic = async (topicId: string) => {
+    if (!editingTopicName.trim()) return
+
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch(`/api/courses/${courseId}/topics`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, name: editingTopicName.trim() })
+      })
+
+      if (response.ok) {
+        setEditingTopicId(null)
+        setEditingTopicName('')
+        onTopicsChange() // Refresh the topics list
+      } else {
+        const errorData = await response.json()
+        const errorMessage = errorData.error || 'Failed to update topic'
+        setError(errorMessage)
+        console.error('Error updating topic:', errorMessage)
+      }
+    } catch (error) {
+      const errorMessage = 'Network error while updating topic'
+      setError(errorMessage)
+      console.error('Error updating topic:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteTopic = async (topicId: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch(`/api/courses/${courseId}/topics?topicId=${encodeURIComponent(topicId)}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        onTopicsChange() // Refresh the topics list
+      } else {
+        const errorData = await response.json()
+        const errorMessage = errorData.error || 'Failed to delete topic'
+        setError(errorMessage)
+        console.error('Error deleting topic:', errorMessage)
+      }
+    } catch (error) {
+      const errorMessage = 'Network error while deleting topic'
+      setError(errorMessage)
+      console.error('Error deleting topic:', error)
+    } finally {
+      setLoading(false)
+      setDeletingTopicId(null)
+    }
+  }
+
+  const startEditing = (topic: Topic) => {
+    setEditingTopicId(topic.id || `legacy-${topic.name.replace(/\s+/g, '-').toLowerCase()}`)
+    setEditingTopicName(topic.name)
+    setError(null)
+  }
+
+  const cancelEditing = () => {
+    setEditingTopicId(null)
+    setEditingTopicName('')
+    setError(null)
   }
 
   if (topics.length === 0 && !isAddingTopic) {
@@ -198,19 +296,126 @@ export function CourseTopicBanner({
         <div className="px-4 pb-4">
           <div className="space-y-2">
             {/* All topics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {topics.map((topic) => (
-                <div
-                  key={topic.name}
-                  className="flex items-center justify-between p-2 bg-background rounded border"
-                >
-                  <span className="text-sm font-medium">{topic.name}</span>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                    {topic.materialCount} material{topic.materialCount !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-2">
+              {topics.map((topic) => {
+                const topicId = topic.id || `legacy-${topic.name.replace(/\s+/g, '-').toLowerCase()}`
+                const isEditing = editingTopicId === topicId
+                
+                return (
+                  <div
+                    key={topicId}
+                    className="flex items-center justify-between p-3 bg-background rounded border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center space-x-3 flex-1">
+                      {isEditing ? (
+                        <Input
+                          value={editingTopicName}
+                          onChange={(e) => setEditingTopicName(e.target.value)}
+                          onKeyDown={(e) => handleEditKeyDown(e, topicId)}
+                          className="h-8 max-w-xs"
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <span className="text-sm font-medium">{topic.name}</span>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                            {topic.materialCount} material{topic.materialCount !== 1 ? 's' : ''}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-1">
+                      {isEditing ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditTopic(topicId)}
+                            disabled={!editingTopicName.trim() || loading}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={cancelEditing}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => startEditing(topic)}
+                            className="h-8 w-8 p-0"
+                            title="Edit topic"
+                          >
+                            <Edit2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                title="Delete topic"
+                              >
+                                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Topic</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete the topic "{topic.name}"? 
+                                  {topic.materialCount > 0 && (
+                                    <span className="block mt-1 text-destructive">
+                                      This will remove the topic from {topic.materialCount} material{topic.materialCount !== 1 ? 's' : ''}.
+                                    </span>
+                                  )}
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteTopic(topicId)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete Topic
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+
+            {/* Global error display */}
+            {error && (
+              <div className="flex items-center space-x-2 p-3 bg-destructive/10 text-destructive rounded border border-destructive/20">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">{error}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setError(null)}
+                  className="h-6 w-6 p-0 ml-auto"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
 
             {/* Add new topic form */}
             {isAddingTopic && (

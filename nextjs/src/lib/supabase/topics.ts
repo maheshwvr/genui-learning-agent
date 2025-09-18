@@ -121,6 +121,152 @@ export async function createTopic(courseId: string, name: string): Promise<{
 }
 
 /**
+ * Update a topic's name
+ * This validates the new name and ensures it doesn't conflict with existing topics
+ */
+export async function updateTopic(topicId: string, newName: string): Promise<{
+  success: true,
+  data: { id: string; name: string; materialCount: number }
+} | {
+  success: false,
+  error: string
+}> {
+  try {
+    const trimmedName = newName.trim()
+    if (!trimmedName) {
+      return { success: false, error: 'Topic name cannot be empty' }
+    }
+
+    const supabase = await getSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    console.log('Updating topic:', { topicId, newName: trimmedName, userId: user.id })
+
+    // First, get the current topic to validate it exists and get course_id
+    const { data: currentTopic, error: getError } = await (supabase as any)
+      .from('topics')
+      .select('id, name, course_id')
+      .eq('id', topicId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (getError) {
+      console.error('Error fetching current topic:', getError)
+      return { success: false, error: 'Topic not found' }
+    }
+
+    if (!currentTopic) {
+      return { success: false, error: 'Topic not found' }
+    }
+
+    // Check if the new name is the same as current name
+    if (currentTopic.name === trimmedName) {
+      return {
+        success: true,
+        data: {
+          id: currentTopic.id,
+          name: currentTopic.name,
+          materialCount: 0 // Will be recalculated by the calling code
+        }
+      }
+    }
+
+    // Check if another topic with the new name already exists in the same course
+    const { data: existingTopics, error: checkError } = await (supabase as any)
+      .from('topics')
+      .select('id, name')
+      .eq('course_id', currentTopic.course_id)
+      .eq('user_id', user.id)
+      .neq('id', topicId) // Exclude the current topic
+
+    if (checkError) {
+      console.error('Error checking existing topics:', checkError)
+      return { success: false, error: 'Failed to validate topic name' }
+    }
+
+    // Check for case-insensitive duplicate
+    const duplicateTopic = existingTopics?.find((topic: any) => 
+      topic.name.toLowerCase() === trimmedName.toLowerCase()
+    )
+
+    if (duplicateTopic) {
+      console.error('Topic name already exists:', duplicateTopic.name)
+      return { success: false, error: `Topic "${duplicateTopic.name}" already exists` }
+    }
+
+    // Update the topic in the database
+    console.log('Updating topic in database...')
+    const { data: updatedTopic, error: updateError } = await (supabase as any)
+      .from('topics')
+      .update({ name: trimmedName })
+      .eq('id', topicId)
+      .eq('user_id', user.id)
+      .select('id, name')
+      .single()
+
+    if (updateError) {
+      console.error('Error updating topic in database:', updateError)
+      return { success: false, error: 'Failed to update topic in database' }
+    }
+
+    if (!updatedTopic) {
+      console.error('No topic returned from database update')
+      return { success: false, error: 'Failed to update topic - no data returned' }
+    }
+
+    // Also update the topic name in all materials that use it
+    try {
+      const { data: materials, error: materialsError } = await (supabase as any)
+        .from('materials')
+        .select('id, topic_tags')
+        .eq('course_id', currentTopic.course_id)
+        .eq('user_id', user.id)
+        .contains('topic_tags', [currentTopic.name])
+
+      if (materialsError) {
+        console.warn('Warning: Could not fetch materials to update topic tags:', materialsError)
+      } else if (materials && materials.length > 0) {
+        // Update topic_tags in materials
+        for (const material of materials) {
+          const updatedTopicTags = (material.topic_tags || []).map((tag: string) => 
+            tag === currentTopic.name ? trimmedName : tag
+          )
+          
+          const { error: updateMaterialError } = await (supabase as any)
+            .from('materials')
+            .update({ topic_tags: updatedTopicTags })
+            .eq('id', material.id)
+            .eq('user_id', user.id)
+
+          if (updateMaterialError) {
+            console.warn('Warning: Failed to update topic tag in material:', material.id, updateMaterialError)
+          }
+        }
+      }
+    } catch (materialUpdateError) {
+      console.warn('Warning: Error updating topic tags in materials:', materialUpdateError)
+      // Don't fail the whole operation if material updates fail
+    }
+
+    console.log('Successfully updated topic:', updatedTopic)
+    return {
+      success: true,
+      data: {
+        id: updatedTopic.id,
+        name: updatedTopic.name,
+        materialCount: 0 // Will be recalculated by the calling code
+      }
+    }
+  } catch (error) {
+    console.error('Error updating topic:', error)
+    return { success: false, error: 'An unexpected error occurred while updating the topic' }
+  }
+}
+
+/**
  * Get all topics for a course with material counts
  */
 export async function getCourseTopics(courseId: string): Promise<TopicWithCount[]> {

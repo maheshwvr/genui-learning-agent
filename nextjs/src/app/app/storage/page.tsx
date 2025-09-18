@@ -17,6 +17,7 @@ import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus 
 import { CourseSelector } from '@/components/ui/course-selector';
 import { formatFileSize } from '@/lib/utils/file-utils';
 import { useTusUpload } from '@/hooks/use-tus-upload';
+import { Topic } from '@/lib/types';
 
 interface Material {
   id: string;
@@ -41,7 +42,7 @@ export default function MaterialsManagementPage() {
     const { user } = useGlobal();
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [materials, setMaterials] = useState<Material[]>([]);
-    const [topics, setTopics] = useState<{name: string; materialCount: number}[]>([]);
+    const [topics, setTopics] = useState<Topic[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');

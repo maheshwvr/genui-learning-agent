@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTopic, getCourseTopics, deleteTopic } from '@/lib/supabase/topics'
+import { createTopic, getCourseTopics, deleteTopic, updateTopic } from '@/lib/supabase/topics'
 
 export async function GET(
   request: NextRequest,
@@ -68,6 +68,59 @@ export async function POST(
     console.error('Error in POST /api/courses/[id]/topics:', error)
     return NextResponse.json(
       { error: 'Failed to create topic' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const courseId = id
+
+    if (!courseId) {
+      return NextResponse.json(
+        { error: 'Course ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+    const { topicId, name } = body
+
+    if (!topicId || typeof topicId !== 'string') {
+      return NextResponse.json(
+        { error: 'Topic ID is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json(
+        { error: 'Topic name is required' },
+        { status: 400 }
+      )
+    }
+
+    const result = await updateTopic(topicId, name.trim())
+    
+    if (!result.success) {
+      console.error('Failed to update topic:', result.error)
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 }
+      )
+    }
+
+    console.log('Topic updated successfully:', result.data)
+    return NextResponse.json(result.data, { status: 200 })
+  } catch (error) {
+    console.error('Error in PUT /api/courses/[id]/topics:', error)
+    return NextResponse.json(
+      { error: 'Failed to update topic' },
       { status: 500 }
     )
   }

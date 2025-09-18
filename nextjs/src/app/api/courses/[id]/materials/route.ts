@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { 
   getCourseMaterials, 
   addMaterial, 
-  deleteMaterialWithFile,
-  getCourseTopics
+  deleteMaterialWithFile
 } from '@/lib/supabase/materials'
+import { getCourseTopics } from '@/lib/supabase/topics'
 import { getCourse } from '@/lib/supabase/courses'
 
 export async function GET(
