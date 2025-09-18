@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { google } from '@ai-sdk/google';
-import { mcqSchema, tfSchema, type MCQ, type TF } from './lesson-schemas';
+import { mcqSchema, tfSchema, flashcardSetSchema, type MCQ, type TF, type FlashcardSet } from './lesson-schemas';
 import { MCQ_GENERATION_PROMPT } from './prompts';
 
 interface Message {
@@ -103,6 +103,77 @@ Create 3 statements with explanations that enhance understanding regardless of w
     return tf;
   } catch (error) {
     console.error('Error generating T/F:', error);
+    return null;
+  }
+}
+
+// Action to generate Flashcard content
+export async function generateFlashcardsAction(params: {
+  topic: string;
+  context: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  userMessage: string;
+  materialContext?: string;
+}): Promise<FlashcardSet | null> {
+  try {
+    // Generate flashcard set using AI
+    const { object: flashcardSet } = await generateObject({
+      model: google('gemini-2.5-flash-lite'),
+      temperature: 0.5,
+      topP: 0.8,
+      topK: 40,
+      schema: flashcardSetSchema,
+      prompt: `You are an expert educational content creator specializing in flashcard design for active recall and spaced repetition learning.
+
+Create a set of exactly 3 flashcards that test retention of key concepts from the provided materials. Focus on the most assessable and memorable content that supports long-term learning.
+
+Topic: ${params.topic}
+Difficulty: ${params.difficulty}
+Recent Context: ${params.context}
+User's message: ${params.userMessage}
+Material Context: ${params.materialContext || 'No specific materials provided'}
+
+Guidelines for Flashcard Creation:
+1. **Key Concept Focus**: Each flashcard should test retention of a crucial concept, definition, or relationship
+2. **Active Recall**: Design concepts and definitions that require mental retrieval rather than recognition
+3. **Concise & Clear**: Concepts should be brief (1-3 words) and definitions comprehensive but focused
+4. **Material-Driven**: Base flashcards on the most important, testable content from provided materials
+5. **Spaced Repetition Ready**: Create content suitable for long-term retention and review
+
+Concept Guidelines:
+- Use key terms, important names, critical processes, or fundamental principles
+- Avoid overly specific details or trivial facts
+- Focus on content that will be valuable for long-term retention
+
+Definition Guidelines:
+- Provide clear, comprehensive explanations that stand alone
+- Include context that helps understanding and memory
+- Use examples or mnemonics when helpful for retention
+- Ensure definitions teach the full meaning and significance
+
+Difficulty Requirements:
+- Easy: Basic terms and definitions with straightforward concepts
+- Medium: Important concepts requiring solid understanding and application
+- Hard: Complex relationships, nuanced distinctions, and advanced terminology
+
+Generate flashcards that will genuinely help the user retain and recall the most important aspects of ${params.topic}.`,
+    });
+
+    // Validate the generated flashcard set
+    if (!flashcardSet.flashcards || flashcardSet.flashcards.length !== 3) {
+      throw new Error('Invalid flashcard set structure: must have exactly 3 flashcards');
+    }
+
+    // Ensure all flashcards have required fields
+    for (const flashcard of flashcardSet.flashcards) {
+      if (!flashcard.concept || !flashcard.definition || !flashcard.topic) {
+        throw new Error('Invalid flashcard structure: missing required fields');
+      }
+    }
+
+    return flashcardSet;
+  } catch (error) {
+    console.error('Error generating flashcards:', error);
     return null;
   }
 }

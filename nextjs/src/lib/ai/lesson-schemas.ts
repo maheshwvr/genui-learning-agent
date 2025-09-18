@@ -36,13 +36,33 @@ export const tfSchema = z.object({
   overallExplanation: z.string().describe("Summary explanation after all answers")
 });
 
+// Schema for individual flashcards
+export const flashcardSchema = z.object({
+  id: z.string().describe("Unique flashcard identifier (1, 2, 3)"),
+  concept: z.string().describe("The concept/term to be tested"),
+  definition: z.string().describe("The definition/explanation of the concept"),
+  topic: z.string().describe("The specific topic this flashcard covers"),
+  difficulty: z.enum(['easy', 'medium', 'hard']).describe("Difficulty level")
+});
+
+// Schema for flashcard sets
+export const flashcardSetSchema = z.object({
+  topic: z.string().describe("Overall learning topic for the flashcard set"),
+  flashcards: z.array(flashcardSchema)
+    .length(3)
+    .describe("Array of exactly 3 flashcards"),
+  materialContext: z.string().describe("Context from lesson materials that informed these flashcards"),
+  difficulty: z.enum(['easy', 'medium', 'hard']).describe("Overall difficulty level")
+});
+
 // Schema for lesson content structure
 export const lessonContentSchema = z.object({
-  type: z.enum(['text', 'mcq', 'tf']).describe("Type of content block"),
+  type: z.enum(['text', 'mcq', 'tf', 'flashcards']).describe("Type of content block"),
   content: z.union([
     z.string().describe("Text content for text blocks"),
     mcqSchema.describe("MCQ data for question blocks"),
-    tfSchema.describe("True/False data for T/F blocks")
+    tfSchema.describe("True/False data for T/F blocks"),
+    flashcardSetSchema.describe("Flashcard data for flashcard blocks")
   ])
 });
 
@@ -58,6 +78,8 @@ export type MCQOption = z.infer<typeof mcqOptionSchema>;
 export type MCQ = z.infer<typeof mcqSchema>;
 export type TFStatement = z.infer<typeof tfStatementSchema>;
 export type TF = z.infer<typeof tfSchema>;
+export type Flashcard = z.infer<typeof flashcardSchema>;
+export type FlashcardSet = z.infer<typeof flashcardSetSchema>;
 export type LessonContent = z.infer<typeof lessonContentSchema>;
 export type UncertaintyIndicators = z.infer<typeof uncertaintyIndicatorsSchema>;
 
@@ -134,5 +156,44 @@ export const validateTFCorrectness = (tf: TF): boolean => {
            typeof statement.isTrue === 'boolean' && 
            statement.text.length > 0 && 
            statement.explanation.length > 0
+         );
+};
+
+// Validation helpers for flashcards
+export const validateFlashcard = (data: unknown): Flashcard => {
+  return flashcardSchema.parse(data);
+};
+
+export const validateFlashcardSet = (data: unknown): FlashcardSet => {
+  return flashcardSetSchema.parse(data);
+};
+
+// Helper function to create a properly formatted flashcard set
+export const createFlashcardSet = (
+  topic: string,
+  flashcards: Omit<Flashcard, 'id'>[],
+  materialContext: string,
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+): FlashcardSet => {
+  const formattedFlashcards = flashcards.map((flashcard, index) => ({
+    ...flashcard,
+    id: (index + 1).toString() // '1', '2', '3'
+  }));
+
+  return {
+    topic,
+    flashcards: formattedFlashcards,
+    materialContext,
+    difficulty
+  };
+};
+
+// Helper function to validate flashcard set correctness
+export const validateFlashcardSetCorrectness = (flashcardSet: FlashcardSet): boolean => {
+  return flashcardSet.flashcards.length === 3 && 
+         flashcardSet.flashcards.every(flashcard => 
+           flashcard.concept.length > 0 && 
+           flashcard.definition.length > 0 && 
+           flashcard.topic.length > 0
          );
 };

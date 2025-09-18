@@ -2,7 +2,7 @@ import { streamText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { LEARNING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
-import { detectUncertainty, generateMCQAction, generateTFAction } from '@/lib/ai/lesson-actions';
+import { detectUncertainty, generateMCQAction, generateTFAction, generateFlashcardsAction } from '@/lib/ai/lesson-actions';
 import { processLessonMaterialsWithUpload } from '@/lib/ai/gemini-files';
 import { getCourseMaterialsByTopics } from '@/lib/supabase/materials';
 import { createServerLessonManager } from '@/lib/supabase/lessons';
@@ -210,9 +210,9 @@ Please analyze the content from these files when answering questions about the c
 
   const result = await streamText({
     model: google('gemini-2.5-flash'),
-    temperature: 0.5,
-    topP: 0.8,
-    topK: 40,
+    temperature: 0.4,
+    topP: 0.7,
+    topK: 30,
     messages: processedMessages,
     system: `${systemPrompt}
 
@@ -225,10 +225,25 @@ ${materialFileData.map((file, i) => `${i + 1}. URI: ${file.fileUri} (${file.mime
 These are Google File API URIs that you can access directly. Use the content from these files to provide accurate, contextual responses about the course material.
 ` : ''}
 
-You have access to TWO assessment tools that create interactive learning content:
+You have access to THREE assessment tools that create interactive learning content:
 
 1. **generateMCQ** - Creates multiple choice questions
 2. **generateTF** - Creates True/False statements  
+3. **generateFlashcards** - Creates flashcards for active recall and retention
+
+## CRITICAL: Assessment Generation Rules
+
+**NEVER write assessment questions directly in your response text.** You must ONLY create assessments by calling the appropriate tool functions listed above.
+
+**PROHIBITED EXAMPLES (DO NOT DO THIS):**
+❌ "True or False: An engineer should always strive to make as many idealizations..."
+❌ "Which of the following is correct? A) Option 1 B) Option 2..."
+❌ "Here's a quick quiz question: What is...?"
+
+**CORRECT APPROACH:**
+✅ Provide educational explanation, then call generateMCQ/generateTF/generateFlashcards tool
+✅ Let the tool handle the assessment creation and display
+✅ Focus your text response on explanations and context
 
 ## ASSESSMENT SELECTION STRATEGY:
 
@@ -237,7 +252,7 @@ You have access to TWO assessment tools that create interactive learning content
 - Choosing between different methods or solutions
 - Comparing and contrasting multiple options
 - Assessment of understanding across broader topics
-- When both MCQ and T/F would work equally well (slight MCQ preference)
+- When multiple tools would work equally well (slight preference)
 
 **Use generateTF when:**
 - Clarifying common misconceptions  
@@ -246,21 +261,36 @@ You have access to TWO assessment tools that create interactive learning content
 - Addressing yes/no conceptual questions
 - Breaking down complex topics into discrete true/false elements
 
+**Use generateFlashcards (PREFERRED) when:**
+- Testing memorization of key terms and definitions
+- Reinforcing core concepts from lesson materials for retention
+- Supporting spaced repetition and active recall
+- Consolidating learned material for long-term memory
+- When user explicitly mentions memorization, recall, or review needs
+- After substantial material has been covered and needs consolidation
+- When multiple tools would work equally well (slight preference)
+
 ## CRITICAL ASSESSMENT INSTRUCTIONS:
-1. ALWAYS provide a contextual text explanation BEFORE generating any assessment
+1. ALWAYS provide a contextual text explanation BEFORE calling any assessment tool
 2. This explanation should either:
    - Provide a brief educational overview of the topic to guide the user toward understanding
-   - Introduce the assessment with context about why it's being asked and how it applies
+   - Introduce why the assessment is important and how it applies to their learning
    - Give background information that will help the user approach the assessment thoughtfully
 
 3. Your text response should stand alone as valuable educational content, even without the assessment
 4. The explanation should prepare the user to engage meaningfully with the assessment
+5. **NEVER include assessment questions in your text response - only call the tools**
+
+## Tool Usage Workflow:
+1. **First**: Provide educational context and explanation in your text response
+2. **Then**: Call the appropriate tool (generateMCQ, generateTF, or generateFlashcards)
+3. **Never**: Include assessment questions directly in your response text
 
 IMPORTANT: If the user's message contains uncertainty indicators like "don't understand", "confused", "not sure", "what is", "explain", etc., you SHOULD:
 1. First provide a clear, contextual explanation of the topic
-2. Then use either generateMCQ or generateTF tool to create practice content that builds on that explanation
+2. Then use either generateMCQ, generateTF, or generateFlashcards tool to create practice content that builds on that explanation
 
-Choose the assessment type that best serves the specific learning moment. When in doubt, prefer MCQ.
+Choose the assessment type that best serves the specific learning moment. When in doubt, prefer MCQ for application testing, T/F for misconception clarification, and Flashcards for retention and memorization.
 
 REMEMBER: This is a fresh conversation with no previous context. Introduce topics clearly and don't assume the user knows what was discussed before.`,
     tools: {
@@ -338,6 +368,48 @@ REMEMBER: This is a fresh conversation with no previous context. Introduce topic
             return {
               type: 'error',
               message: 'I had trouble creating True/False statements, but let\'s continue our discussion!'
+            };
+          }
+        }
+      }),
+      generateFlashcards: tool({
+        description: 'Generate flashcards for active recall and spaced repetition learning',
+        parameters: z.object({
+          topic: z.string().describe('The main topic for the flashcards'),
+          difficulty: z.enum(['easy', 'medium', 'hard']).describe('Difficulty level'),
+          reason: z.string().describe('Why these flashcards would be helpful for retention')
+        }),
+        execute: async ({ topic, difficulty, reason }) => {
+          console.log('Flashcards Tool called! Topic:', topic, 'Difficulty:', difficulty, 'Reason:', reason);
+          
+          try {
+            const flashcardSet = await generateFlashcardsAction({
+              topic,
+              difficulty,
+              context: messages.slice(-3).map((m: Message) => m.content).join('\n'),
+              userMessage: latestUserMessage?.content || '',
+              materialContext: materialFileData.length > 0 ? 
+                `Materials available: ${materialFileData.map(f => f.fileUri).join(', ')}` : 
+                undefined
+            });
+
+            if (flashcardSet) {
+              return {
+                type: 'flashcards',
+                data: flashcardSet,
+                message: `Let's reinforce these key concepts from ${topic} with some flashcards:`
+              };
+            } else {
+              return {
+                type: 'error',
+                message: 'I had trouble creating flashcards, but let\'s continue our discussion!'
+              };
+            }
+          } catch (error) {
+            console.error('Error generating flashcards:', error);
+            return {
+              type: 'error',
+              message: 'I had trouble creating flashcards, but let\'s continue our discussion!'
             };
           }
         }

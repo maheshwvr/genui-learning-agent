@@ -14,7 +14,9 @@ import { MCQComponent } from '@/components/ui/mcq-component'
 import { MCQLoading } from '@/components/ui/mcq-loading'
 import { TFComponent } from '@/components/ui/tf-component'
 import { TFLoading } from '@/components/ui/tf-loading'
-import { type MCQ, type TF, type MCQOption } from '@/lib/ai/lesson-schemas'
+import { FlashcardComponent } from '@/components/ui/flashcard-component'
+import { FlashcardLoading } from '@/components/ui/flashcard-loading'
+import { type MCQ, type TF, type FlashcardSet, type MCQOption } from '@/lib/ai/lesson-schemas'
 import { type ChatMessage } from '@/lib/types'
 
 interface ChatProps {
@@ -109,6 +111,33 @@ function validateTF(obj: unknown): obj is TF {
       typeof (stmt as Record<string, unknown>).text === 'string' && 
       typeof (stmt as Record<string, unknown>).isTrue === 'boolean' &&
       typeof (stmt as Record<string, unknown>).explanation === 'string'
+    );
+}
+
+// Helper function to validate FlashcardSet structure
+function validateFlashcardSet(obj: unknown): obj is FlashcardSet {
+  return obj !== null && 
+    typeof obj === 'object' &&
+    obj !== undefined &&
+    'topic' in obj &&
+    typeof (obj as Record<string, unknown>).topic === 'string' && 
+    'flashcards' in obj &&
+    Array.isArray((obj as Record<string, unknown>).flashcards) && 
+    (obj as Record<string, unknown[]>).flashcards.length === 3 &&
+    (obj as Record<string, unknown[]>).flashcards.every((card: unknown) => 
+      card !== null && 
+      typeof card === 'object' &&
+      card !== undefined &&
+      'id' in card &&
+      'concept' in card &&
+      'definition' in card &&
+      'topic' in card &&
+      'difficulty' in card &&
+      typeof (card as Record<string, unknown>).id === 'string' && 
+      typeof (card as Record<string, unknown>).concept === 'string' && 
+      typeof (card as Record<string, unknown>).definition === 'string' &&
+      typeof (card as Record<string, unknown>).topic === 'string' &&
+      typeof (card as Record<string, unknown>).difficulty === 'string'
     );
 }
 
@@ -368,6 +397,134 @@ function extractTFFromMessage(message: Message): TF | null {
   }
 }
 
+// Helper function to detect if message content contains Flashcard data
+function parseFlashcardsFromContent(content: string): FlashcardSet | null {
+  if (!content || typeof content !== 'string') {
+    return null;
+  }
+  
+  try {
+    // Look for Flashcards marker format (only if complete)
+    const flashcardsMarkerMatch = content.match(/FLASHCARDS_DATA_START([\s\S]+?)FLASHCARDS_DATA_END/);
+    if (flashcardsMarkerMatch && flashcardsMarkerMatch[1]) {
+      const flashcardsData = safeJSONParse(flashcardsMarkerMatch[1].trim());
+      if (flashcardsData && validateFlashcardSet(flashcardsData)) {
+        return flashcardsData as FlashcardSet;
+      }
+    }
+    
+    // Only attempt to parse other JSON formats if they look complete
+    // Look for JSON string that contains Flashcards data (legacy format)
+    const jsonStringMatch = content.match(/\{\"type\":\"flashcards\",\"data\":\{[\s\S]*?\}\}/);
+    if (jsonStringMatch && jsonStringMatch[0] && jsonStringMatch[0].endsWith('}}')) {
+      const toolResult = safeJSONParse(jsonStringMatch[0]) as { type?: string; data?: unknown } | null;
+      if (toolResult && toolResult.type === 'flashcards' && validateFlashcardSet(toolResult.data)) {
+        return toolResult.data as FlashcardSet;
+      }
+    }
+    
+    // Look for tool call results in the content (legacy format)
+    const toolCallMatch = content.match(/\{"type":"flashcards","data":\{[\s\S]*?\}\}/);
+    if (toolCallMatch && toolCallMatch[0] && toolCallMatch[0].endsWith('}}')) {
+      const toolResult = safeJSONParse(toolCallMatch[0]) as { type?: string; data?: unknown } | null;
+      if (toolResult && toolResult.type === 'flashcards' && validateFlashcardSet(toolResult.data)) {
+        return toolResult.data as FlashcardSet;
+      }
+    }
+
+    // Also look for direct FlashcardSet JSON structure (only if complete)
+    const flashcardsMatch = content.match(/\{[^}]*"topic"[^}]*"flashcards"[^}]*\}/);
+    if (flashcardsMatch && flashcardsMatch[0] && flashcardsMatch[0].endsWith('}')) {
+      const flashcardsData = safeJSONParse(flashcardsMatch[0]);
+      if (flashcardsData && validateFlashcardSet(flashcardsData)) {
+        return flashcardsData as FlashcardSet;
+      }
+    }
+    
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper function to extract FlashcardSet from message object (including toolInvocations)
+function extractFlashcardsFromMessage(message: Message): FlashcardSet | null {
+  if (!message) {
+    return null;
+  }
+  
+  try {
+    // Check assessment metadata first (for persisted flashcards)
+    if ('assessment' in message && message.assessment) {
+      const assessment = (message as ChatMessage).assessment;
+      if (assessment && assessment.type === 'flashcards' && assessment.data) {
+        return assessment.data as FlashcardSet;
+      }
+    }
+    
+    // Check message content second
+    const contentFlashcards = parseFlashcardsFromContent(message.content || '');
+    if (contentFlashcards) return contentFlashcards;
+    
+    // Check for toolInvocations property (AI SDK tool call format)
+    if ('toolInvocations' in message && Array.isArray((message as unknown as Record<string, unknown>).toolInvocations)) {
+      const toolInvocations = (message as unknown as Record<string, unknown>).toolInvocations as CustomToolInvocation[];
+      for (const invocation of toolInvocations) {
+        if (invocation && invocation.toolName === 'generateFlashcards' && 'result' in invocation && invocation.result) {
+          if (typeof invocation.result === 'string') {
+            // Only attempt JSON parsing if the string looks like JSON
+            const trimmed = invocation.result.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+              const parsed = safeJSONParse(trimmed);
+              if (parsed && validateFlashcardSet(parsed)) {
+                return parsed as FlashcardSet;
+              }
+            }
+            // If it's a plain text response, it might contain flashcards markers
+            const flashcardsFromText = parseFlashcardsFromContent(invocation.result);
+            if (flashcardsFromText) {
+              return flashcardsFromText;
+            }
+          } else if (invocation.result && typeof invocation.result === 'object' && 'type' in invocation.result && invocation.result.type === 'flashcards' && 'data' in invocation.result && validateFlashcardSet(invocation.result.data)) {
+            return invocation.result.data as FlashcardSet;
+          }
+        }
+      }
+    }
+    
+    // Check for experimental_toolCalls property (alternative format)
+    if ('experimental_toolCalls' in message && Array.isArray((message as unknown as Record<string, unknown>).experimental_toolCalls)) {
+      const toolCalls = (message as unknown as Record<string, unknown>).experimental_toolCalls as CustomToolCall[];
+      for (const toolCall of toolCalls) {
+        if (toolCall && toolCall.toolName === 'generateFlashcards' && 'result' in toolCall && toolCall.result) {
+          if (typeof toolCall.result === 'string') {
+            // Only attempt JSON parsing if the string looks like JSON
+            const trimmed = toolCall.result.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+              const parsed = safeJSONParse(trimmed);
+              if (parsed && validateFlashcardSet(parsed)) {
+                return parsed as FlashcardSet;
+              }
+            }
+            // If it's a plain text response, it might contain flashcards markers
+            const flashcardsFromText = parseFlashcardsFromContent(toolCall.result);
+            if (flashcardsFromText) {
+              return flashcardsFromText;
+            }
+          } else if (toolCall.result && typeof toolCall.result === 'object' && 'type' in toolCall.result && toolCall.result.type === 'flashcards' && 'data' in toolCall.result && validateFlashcardSet(toolCall.result.data)) {
+            return toolCall.result.data as FlashcardSet;
+          }
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting flashcards from message:', error);
+    return null;
+  }
+}
+
 // Function to generate silent summary message for MCQ results
 function generateMCQSummary(mcq: MCQ, selectedOption: MCQOption, isCorrect: boolean): string {
   const correctOption = mcq.options.find(opt => opt.isCorrect);
@@ -405,6 +562,31 @@ function generateTFSummary(tf: TF, results: Array<{statementId: string, isCorrec
   return `SILENT_SUMMARY: User completed T/F about "${tf.topic}". Results: ${correctCount}/${totalCount} correct. Correct answers: [${correctStatements.join(', ')}]. Incorrect answers: [${incorrectStatements.join(', ')}]. Overall performance: ${performanceAnalysis}.`;
 }
 
+// Function to generate silent summary message for Flashcard results
+function generateFlashcardsSummary(
+  flashcardSet: FlashcardSet, 
+  performance: Array<{flashcardId: string, performance: 'got-it' | 'on-track' | 'unclear', saved?: boolean}>
+): string {
+  const gotItCount = performance.filter(p => p.performance === 'got-it').length;
+  const onTrackCount = performance.filter(p => p.performance === 'on-track').length;
+  const unclearCount = performance.filter(p => p.performance === 'unclear').length;
+  const savedCount = performance.filter(p => p.saved).length;
+  const totalCount = performance.length;
+  
+  const performanceBreakdown = performance.map(p => {
+    const flashcard = flashcardSet.flashcards.find(f => f.id === p.flashcardId);
+    return `${p.flashcardId}: "${flashcard?.concept}" - ${p.performance}${p.saved ? ' (saved)' : ''}`;
+  });
+  
+  const overallRetention = gotItCount === totalCount 
+    ? 'Excellent retention across all concepts' 
+    : gotItCount + onTrackCount >= totalCount * 0.67 
+    ? 'Good retention with some concepts needing review' 
+    : 'Significant concepts need reinforcement';
+    
+  return `SILENT_SUMMARY: User completed flashcard review about "${flashcardSet.topic}". Results: ${gotItCount} got it, ${onTrackCount} on track, ${unclearCount} unclear. Performance breakdown: [${performanceBreakdown.join(', ')}]. Overall retention: ${overallRetention}.`;
+}
+
 // Helper function to check if message has existing assessment results
 function getExistingAssessmentResults(message: Message): ChatMessage['assessment'] | null {
   // Check if this is an enhanced ChatMessage with assessment metadata
@@ -432,7 +614,7 @@ export function Chat({
   })
 
   // State to track if we're currently generating an assessment (MCQ or TF)
-  const [assessmentGeneratingType, setAssessmentGeneratingType] = useState<'mcq' | 'tf' | null>(null)
+  const [assessmentGeneratingType, setAssessmentGeneratingType] = useState<'mcq' | 'tf' | 'flashcards' | null>(null)
   
   // Track processed assessments to prevent duplicate submissions
   const [processedAssessments, setProcessedAssessments] = useState<Set<string>>(new Set())
@@ -444,19 +626,19 @@ export function Chat({
       
       // If the last message is from assistant and contains partial assessment data, show loading
       if (lastMessage && lastMessage.role === 'assistant') {
-        const hasPartialMCQ = lastMessage.content.includes('MCQ_DATA_START') || 
-                             lastMessage.content.includes('quiz question') ||
-                             lastMessage.content.includes('multiple choice');
+        const hasPartialMCQ = lastMessage.content.includes('MCQ_DATA_START');
         
-        const hasPartialTF = lastMessage.content.includes('TF_DATA_START') || 
-                            lastMessage.content.includes('True/False') ||
-                            lastMessage.content.includes('true/false statements');
+        const hasPartialTF = lastMessage.content.includes('TF_DATA_START');
+        
+        const hasPartialFlashcards = lastMessage.content.includes('FLASHCARDS_DATA_START');
         
         if (hasPartialMCQ && !lastMessage.content.includes('MCQ_DATA_END')) {
           setAssessmentGeneratingType('mcq');
         } else if (hasPartialTF && !lastMessage.content.includes('TF_DATA_END')) {
           setAssessmentGeneratingType('tf');
-        } else if (lastMessage.content.includes('MCQ_DATA_END') || lastMessage.content.includes('TF_DATA_END')) {
+        } else if (hasPartialFlashcards && !lastMessage.content.includes('FLASHCARDS_DATA_END')) {
+          setAssessmentGeneratingType('flashcards');
+        } else if (lastMessage.content.includes('MCQ_DATA_END') || lastMessage.content.includes('TF_DATA_END') || lastMessage.content.includes('FLASHCARDS_DATA_END')) {
           setAssessmentGeneratingType(null);
         }
       }
@@ -474,9 +656,13 @@ export function Chat({
   }, [])
 
   // Scroll when new messages are added or content changes
+  const lastMessageLengthRef = useRef(0);
   useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom()
+    if (messages.length > lastMessageLengthRef.current) {
+      lastMessageLengthRef.current = messages.length;
+      scrollToBottom();
+    } else {
+      lastMessageLengthRef.current = messages.length;
     }
   }, [messages.length, scrollToBottom])
 
@@ -538,33 +724,39 @@ export function Chat({
                   try {
                     // Wrap entire message rendering in try-catch to prevent one bad message from breaking all subsequent ones
                     
-                    // Check if this message contains an MCQ or TF (with error handling)
+                    // Check if this message contains an MCQ, TF, or Flashcards (with error handling)
                     let mcqData: MCQ | null = null;
                     let tfData: TF | null = null;
+                    let flashcardsData: FlashcardSet | null = null;
                     try {
                       mcqData = message.role === 'assistant' ? extractMCQFromMessage(message) : null;
                       tfData = message.role === 'assistant' ? extractTFFromMessage(message) : null;
+                      flashcardsData = message.role === 'assistant' ? extractFlashcardsFromMessage(message) : null;
                     } catch (error) {
-                      console.error('Error extracting MCQ/TF from message:', error);
+                      console.error('Error extracting MCQ/TF/Flashcards from message:', error);
                       mcqData = null;
                       tfData = null;
+                      flashcardsData = null;
                     }
                     
-                    // Calculate cleaned content (content after removing MCQ/TF markers)
+                    // Calculate cleaned content (content after removing MCQ/TF/Flashcards markers)
                     let cleanedContent = message.content;
-                    if ((mcqData || tfData) && message.role === 'assistant') {
+                    if ((mcqData || tfData || flashcardsData) && message.role === 'assistant') {
                       cleanedContent = message.content
                         .replace(/MCQ_DATA_START[\s\S]*?MCQ_DATA_END/g, '')
                         .replace(/TF_DATA_START[\s\S]*?TF_DATA_END/g, '')
+                        .replace(/FLASHCARDS_DATA_START[\s\S]*?FLASHCARDS_DATA_END/g, '')
                         .replace(/\{"type":"mcq"[\s\S]*?\}/g, '')
                         .replace(/\{"type":"tf"[\s\S]*?\}/g, '')
+                        .replace(/\{"type":"flashcards"[\s\S]*?\}/g, '')
                         .replace(/\{[^}]*"question"[^}]*\}/g, '')
                         .replace(/\{[^}]*"topic"[^}]*"statements"[^}]*\}/g, '')
+                        .replace(/\{[^}]*"topic"[^}]*"flashcards"[^}]*\}/g, '')
                         .trim();
                     }
                     
-                    // If message has MCQ/TF but no meaningful text content, don't render the message box
-                    const shouldRenderMessageBox = message.role === 'user' || (!mcqData && !tfData) || (cleanedContent && cleanedContent.length > 0);
+                    // If message has MCQ/TF/Flashcards but no meaningful text content, don't render the message box
+                    const shouldRenderMessageBox = message.role === 'user' || (!mcqData && !tfData && !flashcardsData) || (cleanedContent && cleanedContent.length > 0);
                   
                   return (
                     <div key={message.id} className="space-y-4">
@@ -752,6 +944,111 @@ export function Chat({
                           </div>
                         );
                       })()}
+                      
+                      {/* Render Flashcard component if detected */}
+                      {flashcardsData && (() => {
+                        // Check for existing assessment results
+                        const existingResults = getExistingAssessmentResults(message);
+                        const flashcardsResults = existingResults?.type === 'flashcards' ? existingResults.results : null;
+                        
+                        return (
+                          <div className="flex justify-start">
+                            <div className="w-8" /> {/* Spacer for alignment */}
+                            <div className="max-w-[80%]">
+                              <FlashcardComponent 
+                                flashcardSet={flashcardsData}
+                                initialCurrentIndex={0}
+                                initialFlippedCards={new Set()}
+                                initialPerformance={flashcardsResults?.flashcardPerformance ? 
+                                  flashcardsResults.flashcardPerformance.reduce((acc, perf) => {
+                                    acc[perf.flashcardId] = perf.performance;
+                                    return acc;
+                                  }, {} as Record<string, 'got-it' | 'on-track' | 'unclear'>) : 
+                                  {}
+                                }
+                                initialSavedCards={flashcardsResults?.flashcardPerformance ? 
+                                  new Set(flashcardsResults.flashcardPerformance.filter(perf => perf.saved).map(perf => perf.flashcardId)) : 
+                                  new Set()
+                                }
+                                initialIsCompleted={flashcardsResults?.completed || false}
+                                onAnswer={(flashcardId, performance) => {
+                                  // Store individual flashcard performance
+                                  if (updateMessage) {
+                                    const existingAssessment = getExistingAssessmentResults(message);
+                                    const currentPerformance = existingAssessment?.results?.flashcardPerformance || [];
+                                    
+                                    // Update or add performance for this flashcard
+                                    const updatedPerformance = currentPerformance.filter(p => p.flashcardId !== flashcardId);
+                                    updatedPerformance.push({ flashcardId, performance });
+                                    
+                                    const assessmentData = {
+                                      type: 'flashcards' as const,
+                                      data: flashcardsData,
+                                      results: {
+                                        flashcardPerformance: updatedPerformance,
+                                        submittedAt: new Date().toISOString(),
+                                        completed: updatedPerformance.length === flashcardsData.flashcards.length
+                                      }
+                                    };
+                                    
+                                    updateMessage(message.id, {
+                                      assessment: assessmentData
+                                    } as Partial<Message>);
+                                    
+                                    // If all flashcards are completed, send summary
+                                    if (assessmentData.results.completed && append) {
+                                      const assessmentKey = `flashcards-${message.id}-completed`;
+                                      if (!processedAssessments.has(assessmentKey)) {
+                                        setProcessedAssessments(prev => new Set(prev).add(assessmentKey));
+                                        const summary = generateFlashcardsSummary(flashcardsData, updatedPerformance);
+                                        append({
+                                          role: 'user',
+                                          content: summary
+                                        });
+                                      }
+                                    }
+                                  }
+                                }}
+                                onSave={(flashcardId, shouldSave) => {
+                                  // Handle individual flashcard saving to personal collection
+                                  if (updateMessage) {
+                                    const existingAssessment = getExistingAssessmentResults(message);
+                                    const currentPerformance = existingAssessment?.results?.flashcardPerformance || [];
+                                    
+                                    // Update saved status for this flashcard
+                                    const updatedPerformance = currentPerformance.map(p => 
+                                      p.flashcardId === flashcardId ? { ...p, saved: shouldSave } : p
+                                    );
+                                    
+                                    // If this flashcard doesn't have performance data yet, create it
+                                    if (!updatedPerformance.find(p => p.flashcardId === flashcardId)) {
+                                      updatedPerformance.push({ flashcardId, performance: 'got-it', saved: shouldSave });
+                                    }
+                                    
+                                    const assessmentData = {
+                                      type: 'flashcards' as const,
+                                      data: flashcardsData,
+                                      results: {
+                                        flashcardPerformance: updatedPerformance,
+                                        submittedAt: new Date().toISOString(),
+                                        completed: existingAssessment?.results?.completed || false
+                                      }
+                                    };
+                                    
+                                    updateMessage(message.id, {
+                                      assessment: assessmentData
+                                    } as Partial<Message>);
+                                  }
+                                  
+                                  // TODO: Actually save to database via flashcards.ts functions
+                                  // This would involve calling saveFlashcard() function
+                                }}
+                                className="my-2"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                   } catch (error) {
@@ -789,6 +1086,10 @@ export function Chat({
                   ) : assessmentGeneratingType === 'tf' ? (
                     <div className="flex-1">
                       <TFLoading />
+                    </div>
+                  ) : assessmentGeneratingType === 'flashcards' ? (
+                    <div className="flex-1">
+                      <FlashcardLoading />
                     </div>
                   ) : (
                     <div className="flex gap-1 py-2">

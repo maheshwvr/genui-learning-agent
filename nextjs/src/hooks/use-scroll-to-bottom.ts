@@ -78,6 +78,15 @@ export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
       let shouldScroll = false;
 
       mutations.forEach((mutation) => {
+        // Skip mutations inside flashcard components
+        const target = mutation.target as Element;
+        if (target && (
+          target.closest?.('.flashcard-container') ||
+          target.closest?.('[data-scroll-ignore]')
+        )) {
+          return;
+        }
+
         // Check for added nodes (new messages, MCQ components, etc.)
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           shouldScroll = true;

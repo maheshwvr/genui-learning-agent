@@ -1,4 +1,4 @@
-import type { MCQ, TF } from '@/lib/ai/lesson-schemas';
+import type { MCQ, TF, Flashcard, FlashcardSet } from '@/lib/ai/lesson-schemas';
 
 export type Json =
   | string
@@ -58,6 +58,48 @@ export type Database = {
           user_id?: string
           name?: string
           description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      flashcards: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string | null
+          topic_tags: string[]
+          concept: string
+          definition: string
+          topic: string
+          difficulty: string
+          source_lesson_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id?: string | null
+          topic_tags?: string[]
+          concept: string
+          definition: string
+          topic: string
+          difficulty?: string
+          source_lesson_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string | null
+          topic_tags?: string[]
+          concept?: string
+          definition?: string
+          topic?: string
+          difficulty?: string
+          source_lesson_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -321,8 +363,8 @@ export interface ChatMessage {
   
   // Assessment metadata for storing tool call data and results
   assessment?: {
-    type: 'mcq' | 'tf'
-    data: MCQ | TF  // MCQ | TF data from lesson-schemas
+    type: 'mcq' | 'tf' | 'flashcards'
+    data: MCQ | TF | FlashcardSet  // MCQ | TF | FlashcardSet data from lesson-schemas
     results?: {
       // For MCQ
       selectedOptionId?: string
@@ -331,6 +373,13 @@ export interface ChatMessage {
       // For TF  
       answers?: Record<string, boolean>
       scores?: Array<{statementId: string, isCorrect: boolean}>
+      
+      // For Flashcards
+      flashcardPerformance?: Array<{
+        flashcardId: string
+        performance: 'got-it' | 'on-track' | 'unclear'
+        saved?: boolean
+      }>
       
       // Common
       submittedAt?: string
@@ -355,6 +404,10 @@ export interface Lesson {
 export type CourseRow = Tables<'courses'>
 export type CourseInsert = TablesInsert<'courses'>
 export type CourseUpdate = TablesUpdate<'courses'>
+
+export type FlashcardRow = Tables<'flashcards'>
+export type FlashcardInsert = TablesInsert<'flashcards'>
+export type FlashcardUpdate = TablesUpdate<'flashcards'>
 
 export type MaterialRow = Tables<'materials'>
 export type MaterialInsert = TablesInsert<'materials'>
