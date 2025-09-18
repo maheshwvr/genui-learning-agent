@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { Chat } from '@/components/ui/chat';
-import LessonSelector from '@/components/ui/lesson-selector';
 import { Lesson, ChatMessage } from '@/lib/types';
 
 // Type definitions for AI messages with tool invocations
@@ -325,13 +324,6 @@ export default function LessonPage() {
     }
   }, [lessonId, setMessages]);
 
-  // Handle lesson selection (navigate to different lesson)
-  const handleLessonSelect = (newLessonId: string) => {
-    if (newLessonId !== lessonId) {
-      router.push(`/app/learn/${newLessonId}`);
-    }
-  };
-
   useEffect(() => {
     fetchLesson();
   }, [fetchLesson]);
@@ -409,13 +401,6 @@ export default function LessonPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-none p-4">
-        <LessonSelector 
-          currentLessonId={lessonId}
-          onLessonSelect={handleLessonSelect}
-        />
-      </div>
-      
       <div className="flex-1 flex flex-col px-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold">{lesson.title}</h1>
