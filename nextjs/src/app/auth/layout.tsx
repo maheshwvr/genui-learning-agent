@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 
 export default function AuthLayout({
                                        children,
@@ -7,38 +6,25 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     const productName = process.env.NEXT_PUBLIC_PRODUCTNAME;
-    const testimonials = [
+    // Right panel feature descriptors (concise & professional; avoid buzzwords per requirements)
+    const featurePillars = [
         {
-            quote: "This template helped us launch our SaaS product in just two weeks. The authentication and multi-tenancy features are rock solid.",
-            author: "Sarah Chen",
-            role: "CTO, TechStart",
-            avatar: "SC"
+            title: 'Interactive Lessons',
+            body: 'Dynamic lesson flows turn material into progressive question sequences instead of static reading.'
         },
         {
-            quote: "The best part is how well thought out the organization management is. It saved us months of development time.",
-            author: "Michael Roberts",
-            role: "Founder, DataFlow",
-            avatar: "MR"
+            title: 'Question‑Led Mastery',
+            body: 'No more cookie-cutter lessons. Guided lessons push you to articulate reasoning—revealing gaps earlier and strengthening recall.'
         },
         {
-            quote: "Clean code, great documentation, and excellent support. Exactly what we needed to get our MVP off the ground.",
-            author: "Jessica Kim",
-            role: "Lead Developer, CloudScale",
-            avatar: "JK"
+            title: 'Active Study Workspace',
+            body: 'A focused environment that converts notes into varied interactions—minimizing passive review and drift.'
         }
     ];
 
     return (
         <div className="flex min-h-screen">
             <div className="w-full lg:w-1/2 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white relative">
-                <Link
-                    href="/"
-                    className="absolute left-8 top-8 flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Homepage
-                </Link>
-
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
                         {productName}
@@ -50,43 +36,53 @@ export default function AuthLayout({
                 </div>
             </div>
 
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-600 to-primary-800">
-                <div className="w-full flex items-center justify-center p-12">
-                    <div className="space-y-6 max-w-lg">
-                        <h3 className="text-white text-2xl font-bold mb-8">
-                            Trusted by developers worldwide
-                        </h3>
-                        {testimonials.map((testimonial, index) => (
-                            <div
-                                key={index}
-                                className="relative bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 shadow-xl"
-                            >
-                                <div className="flex items-start space-x-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-10 h-10 rounded-full bg-primary-400/30 flex items-center justify-center text-white font-semibold">
-                                            {testimonial.avatar}
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white/90 mb-2 font-light leading-relaxed">
-                                            &#34;{testimonial.quote}&#34;
-                                        </p>
-                                        <div className="mt-3">
-                                            <p className="text-sm font-medium text-white">
-                                                {testimonial.author}
-                                            </p>
-                                            <p className="text-sm text-primary-200">
-                                                {testimonial.role}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        <div className="mt-8 text-center">
-                            <p className="text-primary-100 text-sm">
-                                Join thousands of developers building with {productName}
+            <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+                {/* Gradient backdrop */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900" />
+                {/* Subtle animated radial glow */}
+                <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary-400/20 blur-3xl animate-pulse" />
+                <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-primary-300/10 blur-2xl" />
+
+                <div className="relative w-full flex items-center justify-center p-12">
+                    <div className="w-full max-w-xl space-y-8">
+                        <header className="space-y-4">
+                            <h3 className="text-3xl font-semibold leading-tight tracking-tight bg-gradient-to-r from-white via-primary-100 to-primary-300 text-transparent bg-clip-text drop-shadow-sm">
+                                Turn material into interactive lessons.
+                            </h3>
+                            <p className="text-primary-100 text-sm leading-relaxed">
+                                {productName} provides a scholarly, question‑driven workspace: it engages, probes, and helps you build durable understanding through interaction—not passive review.
                             </p>
+                        </header>
+
+                        <ul className="space-y-3">
+                            {featurePillars.map((f, i) => (
+                                <li
+                                    key={f.title}
+                                    className="group relative rounded-md border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 flex gap-4 items-start hover:border-primary-300/40 hover:bg-white/10 transition-colors"
+                                    style={{ animationDelay: `${i * 90}ms` }}
+                                >
+                                    <span className="text-primary-200 font-mono text-xs pt-0.5 tracking-widest">
+                                        {(i + 1).toString().padStart(2, '0')}
+                                    </span>
+                                    <div className="space-y-0.5">
+                                        <h4 className="text-[13px] font-medium text-white tracking-wide">{f.title}</h4>
+                                        <p className="text-[11px] text-primary-100 leading-relaxed">
+                                            {f.body}
+                                        </p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <div className="pt-2 border-t border-white/10 space-y-2">
+                            <p className="text-xs text-primary-200">
+                                Transform static material into active lessons—shape how you learn, not just what you review.
+                            </p>
+                            <div>
+                                <span className="text-[11px] uppercase tracking-wider text-white/90 font-medium block">
+                                    Student‑led • Question‑driven • Interactive
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

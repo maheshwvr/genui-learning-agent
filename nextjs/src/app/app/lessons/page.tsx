@@ -42,17 +42,21 @@ export default function LessonsPage() {
       </div>
       
       <div className="flex-1 px-4 pb-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Lessons</CardTitle>
-            <CardDescription>
-              Click on any lesson to continue where you left off.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LessonSelector 
-              onLessonSelect={handleLessonSelect}
-            />
+        <Card className="h-full">
+          <CardContent className="p-6 h-full">
+            <div className="space-y-6 h-full flex flex-col">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Your Lessons</h2>
+                <p className="text-muted-foreground">
+                  Click on any lesson to continue where you left off.
+                </p>
+              </div>
+              <div className="flex-1">
+                <LessonSelector 
+                  onLessonSelect={handleLessonSelect}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

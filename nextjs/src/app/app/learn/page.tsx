@@ -134,55 +134,60 @@ export default function LearnPage() {
       <div className="flex-1 px-4 pb-4">
         {/* Course Selection Step */}
         {currentStep === 'course-selection' && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <BookOpen className="h-5 w-5" />
-                    <span>Select a Course</span>
+          <Card className="h-full">
+            <CardContent className="p-6 h-full">
+              <div className="space-y-6 h-full">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <BookOpen className="h-5 w-5" />
+                      <h2 className="text-xl font-semibold">Select a Course</h2>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Choose a course to start a new learning session. The AI will use your course materials to provide contextual guidance. Each session creates a fresh conversation.
+                    </p>
                   </div>
                   <CreateCourseButton onCourseCreated={handleCourseCreated} />
-                </CardTitle>
-                <CardDescription>
-                  Choose a course to start a new learning session. The AI will use your course materials to provide contextual guidance. Each session creates a fresh conversation.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CourseSelector
-                  key={courseSelectorKey}
-                  onCourseSelect={handleCourseSelect}
-                  selectedCourseId={selectedCourse?.id}
-                  showCreateButton={false}
-                  showMaterialCount={true}
-                  showDeleteButton={false}
-                  hideCreateButton={true}
-                />
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+                <div className="flex-1">
+                  <CourseSelector
+                    key={courseSelectorKey}
+                    onCourseSelect={handleCourseSelect}
+                    selectedCourseId={selectedCourse?.id}
+                    showCreateButton={false}
+                    showMaterialCount={true}
+                    showDeleteButton={false}
+                    hideCreateButton={true}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Topic Selection Step */}
         {currentStep === 'topic-selection' && selectedCourse && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Tag className="h-5 w-5" />
-                  <span>Choose Topics</span>
-                </CardTitle>
-                <CardDescription>
-                  Select specific topics from &ldquo;{selectedCourse.name}&rdquo; to focus your new learning session, or select all topics for comprehensive coverage.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <TopicSelector
-                  courseId={selectedCourse.id}
-                  courseName={selectedCourse.name}
-                  selectedTopics={selectedTopics}
-                  onTopicsChange={handleTopicsChange}
-                />
+          <Card className="h-full">
+            <CardContent className="p-6 h-full">
+              <div className="space-y-6 h-full flex flex-col">
+                <div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Tag className="h-5 w-5" />
+                    <h2 className="text-xl font-semibold">Choose Topics</h2>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Select specific topics from &ldquo;{selectedCourse.name}&rdquo; to focus your new learning session, or select all topics for comprehensive coverage.
+                  </p>
+                </div>
+                
+                <div className="flex-1">
+                  <TopicSelector
+                    courseId={selectedCourse.id}
+                    courseName={selectedCourse.name}
+                    selectedTopics={selectedTopics}
+                    onTopicsChange={handleTopicsChange}
+                  />
+                </div>
                 
                 <div className="flex justify-between items-center pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
@@ -201,9 +206,9 @@ export default function LearnPage() {
                     <span>{isCreatingLesson ? 'Creating...' : 'Start New Session'}</span>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
