@@ -87,19 +87,7 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
   }, [])
 
   return (
-    <Card className="p-4 mb-4">
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Your Lessons</h3>
-          <Button
-            onClick={createNewLesson}
-            disabled={isCreating}
-            size="sm"
-          >
-            {isCreating ? 'Creating...' : 'New Lesson'}
-          </Button>
-        </div>
-
         {isLoading ? (
           <div className="text-sm text-gray-500">Loading lessons...</div>
         ) : (
@@ -140,6 +128,5 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
           </div>
         )}
       </div>
-    </Card>
   )
 }

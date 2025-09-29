@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { createSPASassClient } from '@/lib/supabase/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Key, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import {Factor} from "@supabase/auth-js";
 
 // Define the type locally since it's not exported from the public API
@@ -147,8 +147,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
+                <CardTitle className="text-lg">
                     Two-Factor Authentication (2FA)
                 </CardTitle>
                 <CardDescription>
@@ -184,7 +183,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
                                 <button
                                     onClick={() => unenrollFactor(factor.id)}
                                     disabled={actionInProgress}
-                                    className="px-3 py-1 text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
+                                    className="px-3 py-1 text-sm text-white bg-black hover:bg-gray-800 rounded-md disabled:opacity-50"
                                 >
                                     Remove
                                 </button>
@@ -204,7 +203,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
                                 type="text"
                                 value={friendlyName}
                                 onChange={(e) => setFriendlyName(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                                className="mt-1 block w-full py-3 px-4 rounded-md border border-purple-200 shadow-sm focus:border-purple-400 focus:ring-purple-400 focus:ring-1 sm:text-sm"
                                 placeholder="e.g., Work Phone, Personal iPhone"
                                 autoFocus
                             />
@@ -224,7 +223,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
                             <button
                                 onClick={startEnrollment}
                                 disabled={actionInProgress || !friendlyName.trim()}
-                                className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                                className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                             >
                                 {actionInProgress ? 'Processing...' : 'Continue'}
                             </button>
@@ -255,7 +254,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
                                 type="text"
                                 value={verifyCode}
                                 onChange={(e) => setVerifyCode(e.target.value.trim())}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 text-sm"
                                 placeholder="Enter code from your authenticator app"
                             />
                         </div>
@@ -271,7 +270,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
                             <button
                                 onClick={verifyFactor}
                                 disabled={actionInProgress || verifyCode.length === 0}
-                                className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                                className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                             >
                                 {actionInProgress ? 'Verifying...' : 'Verify'}
                             </button>
@@ -289,7 +288,7 @@ export function MFASetup({ onStatusChange }: MFASetupProps) {
                         <button
                             onClick={() => setStep('name')}
                             disabled={actionInProgress}
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                         >
                             {actionInProgress ? 'Processing...' : 'Add New Authentication Method'}
                         </button>

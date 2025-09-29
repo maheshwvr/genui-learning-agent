@@ -7,8 +7,7 @@ import { TopicSelector } from '@/components/ui/topic-selector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { CreateCourseButton } from '@/components/ui/create-course-button';
-import { BookOpen, Play, ArrowLeft, Tag } from 'lucide-react';
+import { Play, ArrowLeft, Tag } from 'lucide-react';
 
 interface Course {
   id: string
@@ -118,10 +117,10 @@ export default function LearnPage() {
           >
             {currentStep !== 'course-selection' && (
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={goBack}
-                className="flex items-center space-x-1"
+                className="flex items-center space-x-1 bg-black text-white hover:bg-gray-800"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back</span>
@@ -136,18 +135,16 @@ export default function LearnPage() {
         {currentStep === 'course-selection' && (
           <Card className="h-full">
             <CardContent className="p-6 h-full">
-              <div className="space-y-6 h-full">
+              <div className="space-y-2 h-full">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <BookOpen className="h-5 w-5" />
+                    <div className="flex items-center space-x-2">
                       <h2 className="text-xl font-semibold">Select a Course</h2>
                     </div>
                     <p className="text-muted-foreground">
-                      Choose a course to start a new learning session. The AI will use your course materials to provide contextual guidance. Each session creates a fresh conversation.
+                      Choose a course to start a new learning session. Each session creates a fresh conversation.
                     </p>
                   </div>
-                  <CreateCourseButton onCourseCreated={handleCourseCreated} />
                 </div>
                 <div className="flex-1">
                   <CourseSelector
@@ -169,10 +166,9 @@ export default function LearnPage() {
         {currentStep === 'topic-selection' && selectedCourse && (
           <Card className="h-full">
             <CardContent className="p-6 h-full">
-              <div className="space-y-6 h-full flex flex-col">
+              <div className="space-y-2 h-full flex flex-col">
                 <div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Tag className="h-5 w-5" />
+                  <div className="flex items-center space-x-2">
                     <h2 className="text-xl font-semibold">Choose Topics</h2>
                   </div>
                   <p className="text-muted-foreground">
@@ -203,7 +199,7 @@ export default function LearnPage() {
                     className="flex items-center space-x-2"
                   >
                     <Play className="h-4 w-4" />
-                    <span>{isCreatingLesson ? 'Creating...' : 'Start New Session'}</span>
+                    <span>{isCreatingLesson ? 'Starting...' : 'Start Session'}</span>
                   </Button>
                 </div>
               </div>

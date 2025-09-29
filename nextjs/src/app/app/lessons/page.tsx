@@ -46,7 +46,7 @@ export default function LessonsPage() {
           <CardContent className="p-6 h-full">
             <div className="space-y-6 h-full flex flex-col">
               <div>
-                <h2 className="text-xl font-semibold mb-2">Your Lessons</h2>
+                <h2 className="text-xl font-semibold">Your Lessons</h2>
                 <p className="text-muted-foreground">
                   Click on any lesson to continue where you left off.
                 </p>

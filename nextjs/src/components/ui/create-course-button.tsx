@@ -109,9 +109,9 @@ export function CreateCourseButton({
     }}>
       <DialogTrigger asChild>
         <Button 
-          variant={variant} 
+          variant="default"
           size={size}
-          className={className}
+          className={`bg-black text-white hover:bg-gray-800 ${className}`}
           title="Create a new course"
         >
           <Plus className="h-4 w-4 mr-2" />

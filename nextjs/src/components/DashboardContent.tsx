@@ -49,7 +49,7 @@ export default function DashboardContent() {
                 <CardContent className="p-6 h-full">
                     <div className="space-y-6 h-full">
                         <div>
-                            <h2 className="text-xl font-semibold mb-4">Get Started</h2>
+                            <h2 className="text-xl font-semibold">Get Started</h2>
                             <p className="text-muted-foreground mb-6">So much to learn, so little time</p>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">

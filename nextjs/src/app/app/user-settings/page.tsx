@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageHeader } from '@/components/ui/page-header';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
-import { Key, User, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { MFASetup } from '@/components/MFASetup';
 
 export default function UserSettingsPage() {
@@ -130,8 +130,7 @@ export default function UserSettingsPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <User className="h-5 w-5" />
+                            <CardTitle className="text-lg">
                                 User Details
                             </CardTitle>
                             <CardDescription>Your account information</CardDescription>
@@ -173,7 +172,7 @@ export default function UserSettingsPage() {
                                 <button
                                     type="submit"
                                     disabled={profileLoading}
-                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                                 >
                                     {profileLoading ? 'Updating...' : 'Update Profile'}
                                 </button>
@@ -183,8 +182,7 @@ export default function UserSettingsPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Key className="h-5 w-5" />
+                            <CardTitle className="text-lg">
                                 Change Password
                             </CardTitle>
                             <CardDescription>Update your account password</CardDescription>
@@ -220,7 +218,7 @@ export default function UserSettingsPage() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                                 >
                                     {loading ? 'Updating...' : 'Update Password'}
                                 </button>

@@ -156,7 +156,7 @@ export function CourseSelector({
   }, [])
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {/* Create Course Button - only show if not hidden */}
       {showCreateButton && !hideCreateButton && (
         <Dialog open={showCreateDialog} onOpenChange={(open) => {

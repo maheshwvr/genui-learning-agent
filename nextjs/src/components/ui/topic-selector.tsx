@@ -81,10 +81,9 @@ export function TopicSelector({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Tag className="h-5 w-5 mr-2" />
+          <p className="text-med font-medium">
             Loading Topics...
-          </CardTitle>
+          </p>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-2">
@@ -101,10 +100,9 @@ export function TopicSelector({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center text-destructive">
-            <Tag className="h-5 w-5 mr-2" />
+          <p className="text-med font-medium">
             Error Loading Topics
-          </CardTitle>
+          </p>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{error}</p>
@@ -125,10 +123,9 @@ export function TopicSelector({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <BookOpen className="h-5 w-5 mr-2" />
+          <p className="text-med font-medium">
             No Topics Available
-          </CardTitle>
+          </p>
           <CardDescription>
             This course doesn't have any materials with topic tags yet. All materials will be included in the lesson.
           </CardDescription>
@@ -141,7 +138,7 @@ export function TopicSelector({
     <Card className={className}>
       <CardContent className="pt-6">
         {/* Select All/None Controls */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-2">
           <Button
             variant="outline"
             size="sm"
@@ -166,7 +163,7 @@ export function TopicSelector({
         </div>
 
         {/* Topic List */}
-        <div className="space-y-3">
+        <div className="space-y-1">
           {topics.map((topic) => {
             const isSelected = selectedTopics.includes(topic.name)
             
@@ -204,8 +201,8 @@ export function TopicSelector({
 
         {/* Selection Summary */}
         {selectedTopics.length > 0 && (
-          <div className="mt-4 p-3 bg-muted rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Selected Topics:</h4>
+          <div className="mt-2 p-3 bg-muted rounded-lg">
+            <h4 className="text-sm font-medium">Selected Topics:</h4>
             <div className="flex flex-wrap gap-1">
               {selectedTopics.map((topic) => (
                 <span key={topic} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded border">
