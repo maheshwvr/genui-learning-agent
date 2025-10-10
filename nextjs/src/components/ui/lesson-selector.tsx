@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Lesson } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface LessonSelectorProps {
   currentLessonId?: string
@@ -89,7 +90,12 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
   return (
       <div className="flex flex-col gap-4">
         {isLoading ? (
-          <div className="text-sm text-gray-500">Loading lessons...</div>
+          <div className="flex items-center justify-center min-h-[300px]">
+            <LoadingSpinner 
+              text="Loading lessons..." 
+              size="md"
+            />
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             {lessons.length === 0 ? (

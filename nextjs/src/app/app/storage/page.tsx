@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -14,6 +14,7 @@ import { TopicAssociationDropdown } from '@/components/ui/topic-association-drop
 import { TopicUploadSelector } from '@/components/ui/topic-upload-selector';
 import { CourseTopicBanner } from '@/components/ui/course-topic-banner';
 import { UploadProgress } from '@/components/ui/upload-progress';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus } from 'lucide-react';
 import { CourseSelector } from '@/components/ui/course-selector';
 import { CreateCourseButton } from '@/components/ui/create-course-button';
@@ -46,6 +47,8 @@ export default function MaterialsManagementPage() {
     const [materials, setMaterials] = useState<Material[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
     const [loading, setLoading] = useState(false);
+    const [coursesLoading, setCoursesLoading] = useState(true);
+    const [courses, setCourses] = useState<Course[]>([]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -56,7 +59,42 @@ export default function MaterialsManagementPage() {
     // Force refresh of CourseSelector when a new course is created
     const handleCourseCreated = () => {
         setCourseSelectorKey(prev => prev + 1);
+        fetchCourses(); // Refresh the courses list
     };
+
+    // Handle course loading state change
+    const handleCoursesLoadingChange = (loading: boolean) => {
+        console.log('Materials page: Courses loading state changed to', loading);
+        setCoursesLoading(loading);
+    };
+
+    // Fetch courses directly in this component
+    const fetchCourses = useCallback(async () => {
+        try {
+            console.log('Materials page: Starting to fetch courses');
+            setCoursesLoading(true);
+            const response = await fetch('/api/courses');
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Materials page: Courses fetched successfully', data.courses?.length || 0);
+                setCourses(data.courses || []);
+            } else {
+                console.error('Materials page: Failed to fetch courses');
+                setError('Failed to load courses');
+            }
+        } catch (error) {
+            console.error('Materials page: Error fetching courses:', error);
+            setError('Failed to load courses');
+        } finally {
+            console.log('Materials page: Setting courses loading to false');
+            setCoursesLoading(false);
+        }
+    }, []);
+
+    // Fetch courses on mount
+    useEffect(() => {
+        fetchCourses();
+    }, [fetchCourses]);
 
     // TUS upload hook
     const tusUpload = useTusUpload({
@@ -189,8 +227,8 @@ export default function MaterialsManagementPage() {
             <div className="flex-none p-4">
                 <div className="mb-4">
                     <PageHeader
-                        title="Materials Management"
-                        description="Organize your learning materials by courses and topics for AI-assisted learning."
+                        title="Learning Materials"
+                        description="Organize your learning materials by courses and topics."
                     >
                         <CreateCourseButton onCourseCreated={handleCourseCreated} />
                     </PageHeader>
@@ -216,19 +254,35 @@ export default function MaterialsManagementPage() {
                 <CardContent className="p-6 h-full">
                     <div className="space-y-6 h-full">
                         <div>
-                            <h2 className="text-xl font-semibold mb-4">Your Courses</h2>
-                            <CourseSelector
-                                key={courseSelectorKey}
-                                onCourseSelect={handleCourseSelect}
-                                selectedCourseId={selectedCourse?.id}
-                                showCreateButton={false}
-                                showMaterialCount={true}
-                                showDeleteButton={true}
-                                hideCreateButton={true}
-                            />
+                            <h2 className="text-xl font-semibold">Your Courses</h2>
+                            <p className="text-muted-foreground mb-4">
+                                Choose a course, then upload documents to learn with Itergora.
+                            </p>
                         </div>
+                        {coursesLoading ? (
+                            <div className="flex items-center justify-center h-full min-h-[400px]">
+                                <LoadingSpinner 
+                                    text="Loading your courses..." 
+                                    size="md"
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <div>
+                                    <CourseSelector
+                                        key={courseSelectorKey}
+                                        courses={courses}
+                                        onCourseSelect={handleCourseSelect}
+                                        onLoadingChange={handleCoursesLoadingChange}
+                                        selectedCourseId={selectedCourse?.id}
+                                        showCreateButton={false}
+                                        showMaterialCount={true}
+                                        showDeleteButton={true}
+                                        hideCreateButton={true}
+                                    />
+                                </div>
 
-                        {selectedCourse ? (
+                                {selectedCourse ? (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-between">
@@ -333,9 +387,11 @@ export default function MaterialsManagementPage() {
                                         )}
 
                                         {loading ? (
-                                            <div className="flex items-center justify-center py-8">
-                                                <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                                                Loading materials...
+                                            <div className="flex items-center justify-center min-h-[300px]">
+                                                <LoadingSpinner 
+                                                    text="Loading materials..." 
+                                                    size="md"
+                                                />
                                             </div>
                                         ) : materials.length === 0 ? (
                                             <div className="text-center py-8 text-muted-foreground">
@@ -421,6 +477,8 @@ export default function MaterialsManagementPage() {
                                     </p>
                                 </CardContent>
                             </Card>
+                        )}
+                            </>
                         )}
                     </div>
                 </CardContent>

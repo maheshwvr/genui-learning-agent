@@ -1,15 +1,13 @@
 "use client";
 import { useState } from 'react';
-import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {
     Home,
-    User,
     Menu,
     X,
     ChevronDown,
     LogOut,
-    Key, FolderInput, LucideListTodo, BookOpen, History,
+    Key, FolderInput, BookOpen, History,
 } from 'lucide-react';
 import { useGlobal, getInitials, getDisplayName } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
@@ -44,7 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         // { name: 'Tasks', href: '/app/table', icon: LucideListTodo },
         { name: 'Learn', href: '/app/learn', icon: BookOpen },
         { name: 'Lessons', href: '/app/lessons', icon: History },
-        { name: 'Settings', href: '/app/user-settings', icon: User },
+        // { name: 'Settings', href: '/app/user-settings', icon: User },
     ];
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);

@@ -366,8 +366,8 @@
     opacity: 0.25;
   }
   100% {
-    width: 200px;
-    height: 200px;
+    width: 60px;
+    height: 60px;
     opacity: 0;
   }
 }

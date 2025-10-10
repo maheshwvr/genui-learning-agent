@@ -99,8 +99,8 @@ export default function LearnPage() {
             description={
               <div className="space-y-2">
                 <p>{currentStep === 'course-selection' 
-                  ? "Select a course and topics to start your learning session"
-                  : "Choose specific topics from your selected course"
+                  ? "Select a course and topics to start your learning session."
+                  : "Choose specific topics from your selected course."
                 }</p>
                 {/* Step indicator */}
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -142,7 +142,7 @@ export default function LearnPage() {
                       <h2 className="text-xl font-semibold">Select a Course</h2>
                     </div>
                     <p className="text-muted-foreground">
-                      Choose a course to start a new learning session. Each session creates a fresh conversation.
+                      Choose a course to start learning. 
                     </p>
                   </div>
                 </div>
@@ -172,7 +172,7 @@ export default function LearnPage() {
                     <h2 className="text-xl font-semibold">Choose Topics</h2>
                   </div>
                   <p className="text-muted-foreground">
-                    Select specific topics from &ldquo;{selectedCourse.name}&rdquo; to focus your new learning session, or select all topics for comprehensive coverage.
+                    Select topics from {selectedCourse.name} to focus your new learning session, or select all topics.
                   </p>
                 </div>
                 

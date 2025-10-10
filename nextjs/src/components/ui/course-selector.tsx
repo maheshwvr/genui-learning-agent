@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus, BookOpen, FileText, Trash2, AlertTriangle } from 'lucide-react'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useGlobal } from '@/lib/context/GlobalContext'
 
 interface Course {
@@ -22,6 +23,8 @@ interface Course {
 
 interface CourseSelectorProps {
   onCourseSelect?: (course: Course) => void
+  onLoadingChange?: (loading: boolean) => void
+  courses?: Course[] // Accept courses as prop
   selectedCourseId?: string | null
   showCreateButton?: boolean
   showMaterialCount?: boolean
@@ -32,6 +35,8 @@ interface CourseSelectorProps {
 
 export function CourseSelector({
   onCourseSelect,
+  onLoadingChange,
+  courses: externalCourses,
   selectedCourseId,
   showCreateButton = true,
   showMaterialCount = true,
@@ -40,8 +45,8 @@ export function CourseSelector({
   hideCreateButton = false
 }: CourseSelectorProps) {
   const { user, loading: userLoading } = useGlobal()
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
+  const [courses, setCourses] = useState<Course[]>(externalCourses || [])
+  const [loading, setLoading] = useState(!externalCourses) // Only show loading if we need to fetch
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -51,10 +56,12 @@ export function CourseSelector({
 
   const fetchCourses = async () => {
     try {
+      console.log('CourseSelector: Starting to fetch courses')
       setLoading(true)
       const response = await fetch('/api/courses')
       if (response.ok) {
         const data = await response.json()
+        console.log('CourseSelector: Courses fetched successfully', data.courses?.length || 0)
         setCourses(data.courses || [])
       } else {
         console.error('Failed to fetch courses')
@@ -62,6 +69,7 @@ export function CourseSelector({
     } catch (error) {
       console.error('Error fetching courses:', error)
     } finally {
+      console.log('CourseSelector: Setting loading to false')
       setLoading(false)
     }
   }
@@ -152,8 +160,26 @@ export function CourseSelector({
   }
 
   useEffect(() => {
-    fetchCourses()
-  }, [])
+    // Only fetch if no external courses provided
+    if (!externalCourses) {
+      console.log('CourseSelector: Fetching courses on mount')
+      fetchCourses()
+    }
+  }, [externalCourses])
+
+  // Update courses when external courses change
+  useEffect(() => {
+    if (externalCourses) {
+      console.log('CourseSelector: Using external courses', externalCourses.length)
+      setCourses(externalCourses)
+      setLoading(false)
+    }
+  }, [externalCourses])
+
+  useEffect(() => {
+    console.log('CourseSelector: Loading state changed to', loading)
+    onLoadingChange?.(loading)
+  }, [loading, onLoadingChange])
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -228,7 +254,14 @@ export function CourseSelector({
       )}
 
       {/* Courses Grid */}
-      {courses.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[300px]">
+          <LoadingSpinner 
+            text="Loading your courses..." 
+            size="md"
+          />
+        </div>
+      ) : courses.length === 0 ? (
         <Card className="p-8 text-center">
           <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No courses yet</h3>
