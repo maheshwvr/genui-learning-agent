@@ -12,20 +12,48 @@ interface LessonSelectorProps {
   onLessonSelect?: (lessonId: string) => void
 }
 
+interface LessonsResponse {
+  lessons: Lesson[]
+  totalCount: number
+  hasMore: boolean
+  page: number
+  limit: number
+}
+
 export default function LessonSelector({ currentLessonId, onLessonSelect }: LessonSelectorProps) {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
   const router = useRouter()
 
-  // Fetch user's lessons
-  const fetchLessons = async () => {
-    setIsLoading(true)
+  const LESSONS_PER_PAGE = 10
+
+  // Fetch user's lessons with pagination
+  const fetchLessons = async (page: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+    }
+    
     try {
-      const response = await fetch('/api/lessons')
+      const response = await fetch(`/api/lessons?page=${page}&limit=${LESSONS_PER_PAGE}`)
       if (response.ok) {
-        const data = await response.json()
-        setLessons(data.lessons || [])
+        const data: LessonsResponse = await response.json()
+        
+        if (append) {
+          setLessons(prevLessons => [...prevLessons, ...data.lessons])
+        } else {
+          setLessons(data.lessons || [])
+        }
+        
+        setHasMore(data.hasMore)
+        setTotalCount(data.totalCount)
+        setCurrentPage(page)
       } else {
         console.error('Failed to fetch lessons')
       }
@@ -33,6 +61,14 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
       console.error('Error fetching lessons:', error)
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }
+
+  // Load more lessons
+  const loadMoreLessons = () => {
+    if (hasMore && !isLoadingMore) {
+      fetchLessons(currentPage + 1, true)
     }
   }
 
@@ -55,8 +91,8 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
         const data = await response.json()
         const newLesson = data.lesson
         
-        // Refresh lessons list
-        await fetchLessons()
+        // Refresh lessons list from the beginning
+        await fetchLessons(1, false)
         
         // Navigate to the new lesson
         if (onLessonSelect) {
@@ -103,33 +139,60 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
                 No lessons yet. Create your first lesson to get started!
               </div>
             ) : (
-              <div className="grid gap-2">
-                {lessons.map((lesson) => (
-                  <div
-                    key={`lesson_${lesson.id}_${lesson.updated_at}`}
-                    className={`
-                      p-3 rounded-lg border cursor-pointer transition-colors
-                      ${currentLessonId === lesson.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }
-                    `}
-                    onClick={() => handleLessonSelect(lesson.id)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{lesson.title}</h4>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {lesson.messages.length} messages
+              <>
+                <div className="grid gap-2">
+                  {lessons.map((lesson) => (
+                    <div
+                      key={`lesson_${lesson.id}_${lesson.updated_at}`}
+                      className={`
+                        p-3 rounded-lg border cursor-pointer transition-colors
+                        ${currentLessonId === lesson.id 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }
+                      `}
+                      onClick={() => handleLessonSelect(lesson.id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">{lesson.title}</h4>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {lesson.messages.length} messages
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
                         </div>
                       </div>
-                      <div className="text-xs text-gray-400">
-                        Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
-                      </div>
                     </div>
+                  ))}
+                </div>
+                
+                {/* See More Button */}
+                {hasMore && (
+                  <div className="flex justify-center mt-4">
+                    {isLoadingMore ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <LoadingSpinner size="sm" />
+                        <span className="text-sm text-gray-600">Loading more...</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={loadMoreLessons}
+                        className="w-full"
+                      >
+                        See More ({totalCount - lessons.length} remaining)
+                      </Button>
+                    )}
                   </div>
-                ))}
-              </div>
+                )}
+                
+                {/* Summary */}
+                <div className="text-xs text-gray-500 text-center mt-2">
+                  Showing {lessons.length} of {totalCount} lessons
+                </div>
+              </>
             )}
           </div>
         )}

@@ -60,20 +60,61 @@ export class LessonManager {
   }
 
   /**
-   * Get all lessons for the authenticated user
+   * Get all lessons for the authenticated user with pagination
    */
-  async getUserLessons(): Promise<Lesson[]> {
+  async getUserLessons(page: number = 1, limit: number = 10): Promise<{
+    lessons: Lesson[]
+    totalCount: number
+    hasMore: boolean
+    page: number
+    limit: number
+  }> {
+    const offset = (page - 1) * limit
+
+    // Get total count
+    const { count, error: countError } = await this.supabase
+      .from('lessons')
+      .select('*', { count: 'exact', head: true })
+
+    if (countError) {
+      console.error('Error fetching lesson count:', countError)
+      return {
+        lessons: [],
+        totalCount: 0,
+        hasMore: false,
+        page,
+        limit
+      }
+    }
+
+    // Get paginated lessons
     const { data: lessons, error } = await this.supabase
       .from('lessons')
       .select('*')
       .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) {
       console.error('Error fetching user lessons:', error)
-      return []
+      return {
+        lessons: [],
+        totalCount: count || 0,
+        hasMore: false,
+        page,
+        limit
+      }
     }
 
-    return lessons.map((lesson: any) => this.formatLesson(lesson)) // eslint-disable-line @typescript-eslint/no-explicit-any
+    const totalCount = count || 0
+    const hasMore = offset + limit < totalCount
+
+    return {
+      lessons: lessons.map((lesson: any) => this.formatLesson(lesson)), // eslint-disable-line @typescript-eslint/no-explicit-any
+      totalCount,
+      hasMore,
+      page,
+      limit
+    }
   }
 
   /**
@@ -209,9 +250,9 @@ export async function getLesson(id: string) {
   return manager.getLesson(id)
 }
 
-export async function getUserLessons() {
+export async function getUserLessons(page: number = 1, limit: number = 10) {
   const manager = createClientLessonManager()
-  return manager.getUserLessons()
+  return manager.getUserLessons(page, limit)
 }
 
 export async function updateLesson(id: string, updates: LessonUpdate) {

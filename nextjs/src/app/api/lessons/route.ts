@@ -6,12 +6,16 @@ import { LessonInsert } from '@/lib/types'
 
 export const runtime = 'edge'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const lessonManager = await createServerLessonManager()
-    const lessons = await lessonManager.getUserLessons()
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
     
-    return NextResponse.json({ lessons })
+    const lessonManager = await createServerLessonManager()
+    const result = await lessonManager.getUserLessons(page, limit)
+    
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching lessons:', error)
     return NextResponse.json(

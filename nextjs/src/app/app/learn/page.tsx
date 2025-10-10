@@ -97,22 +97,9 @@ export default function LearnPage() {
           <PageHeader
             title="Learn"
             description={
-              <div className="space-y-2">
-                <p>{currentStep === 'course-selection' 
-                  ? "Select a course and topics to start your learning session."
-                  : "Choose specific topics from your selected course."
-                }</p>
-                {/* Step indicator */}
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <span className={currentStep === 'course-selection' ? 'text-primary font-medium' : ''}>
-                    1. Select Course
-                  </span>
-                  <span>→</span>
-                  <span className={currentStep === 'topic-selection' ? 'text-primary font-medium' : ''}>
-                    2. Choose Topics & Start New Session
-                  </span>
-                </div>
-              </div>
+              currentStep === 'course-selection' 
+                ? "Select a course and topics to start learning."
+                : "Select specific topics from your course."
             }
           >
             {currentStep !== 'course-selection' && (
@@ -139,10 +126,19 @@ export default function LearnPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <h2 className="text-xl font-semibold">Select a Course</h2>
+                      <h2 className="text-xl font-semibold">Choose Course</h2>
                     </div>
                     <p className="text-muted-foreground">
-                      Choose a course to start learning. 
+                      {/* Step indicator */}
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
+                        <span className="text-primary font-medium">
+                          1. Pick a Course
+                        </span>
+                        <span>→</span>
+                        <span className="">
+                          2. Choose Topics
+                        </span>
+                      </div>
                     </p>
                   </div>
                 </div>
@@ -172,7 +168,16 @@ export default function LearnPage() {
                     <h2 className="text-xl font-semibold">Choose Topics</h2>
                   </div>
                   <p className="text-muted-foreground">
-                    Select topics from {selectedCourse.name} to focus your new learning session, or select all topics.
+                    {/* Step indicator */}
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
+                      <span className="">
+                        1. Pick a Course
+                      </span>
+                      <span>→</span>
+                      <span className="text-primary font-medium">
+                        2. Pick Your Topics
+                      </span>
+                    </div>
                   </p>
                 </div>
                 
