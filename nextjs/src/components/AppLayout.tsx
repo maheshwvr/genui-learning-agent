@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useGlobal, getInitials, getDisplayName } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
+import AnimatedNavButton from "./AnimatedNavButton";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -76,22 +77,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {navigation.map((item) => {
                         const isActive = pathname === item.href;
                         return (
-                            <Link
+                            <AnimatedNavButton
                                 key={item.name}
+                                name={item.name}
                                 href={item.href}
-                                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                                    isActive
-                                        ? 'bg-primary-50 text-primary-600'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                            >
-                                <item.icon
-                                    className={`mr-3 h-5 w-5 ${
-                                        isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                                    }`}
-                                />
-                                {item.name}
-                            </Link>
+                                icon={item.icon}
+                                isActive={isActive}
+                            />
                         );
                     })}
                 </nav>

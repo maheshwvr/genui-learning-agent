@@ -341,3 +341,71 @@
     @apply bg-background text-foreground;
     }
 }
+
+/* Custom animations for navigation buttons */
+@keyframes ripple {
+  0% {
+    width: 0px;
+    height: 0px;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.2;
+  }
+  100% {
+    width: 240px;
+    height: 240px;
+    opacity: 0;
+  }
+}
+
+@keyframes hover-ripple {
+  0% {
+    width: 0px;
+    height: 0px;
+    opacity: 0.25;
+  }
+  100% {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-hover-ripple {
+  animation: hover-ripple 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+
+/* Additional blur utilities for subtle effects */
+.blur-xs {
+  filter: blur(2px);
+}
+
+.blur-lg {
+  filter: blur(16px);
+}
+
+.blur-md {
+  filter: blur(8px);
+}
+
+/* Custom opacity utilities for glow effect */
+.opacity-8 {
+  opacity: 0.08;
+}
+
+.opacity-12 {
+  opacity: 0.12;
+}
+
+/* Custom inset utility for precise center positioning */
+.inset-3\.5 {
+  top: 0.875rem;
+  right: 0.875rem;
+  bottom: 0.875rem;
+  left: 0.875rem;
+}
