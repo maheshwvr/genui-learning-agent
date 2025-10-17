@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AnimatedButton } from '@/components/ui/animated-button'
 import { Check, Tag, BookOpen } from 'lucide-react'
 
 interface Topic {
@@ -16,6 +17,150 @@ interface TopicSelectorProps {
   selectedTopics: string[]
   onTopicsChange: (topics: string[]) => void
   className?: string
+}
+
+// Animated Topic Row Component
+interface AnimatedTopicRowProps {
+  topic: Topic;
+  isSelected: boolean;
+  onToggle: () => void;
+}
+
+function AnimatedTopicRow({ topic, isSelected, onToggle }: AnimatedTopicRowProps) {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+  const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
+  const [showHoverRipple, setShowHoverRipple] = useState(false);
+  const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!rowRef.current) return;
+    
+    const rect = rowRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMousePosition({ x, y });
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!rowRef.current) return;
+    
+    const rect = rowRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setHoverRipplePosition({ x, y });
+    setIsHovered(true);
+    setShowHoverRipple(true);
+    
+    setTimeout(() => {
+      setShowHoverRipple(false);
+    }, 800);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!rowRef.current) return;
+    
+    const rect = rowRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setClickPosition({ x, y });
+    setIsClicked(true);
+    
+    setTimeout(() => {
+      setIsClicked(false);
+    }, 1000);
+    
+    onToggle();
+  };
+
+  return (
+    <div
+      ref={rowRef}
+      className={`relative flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer hover:bg-accent hover:border-accent overflow-hidden ${
+        isSelected ? 'bg-accent border-accent' : 'border-border'
+      }`}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      {/* Hover glow effect - matching sidebar navigation subtlety */}
+      {isHovered && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: mousePosition.x,
+            top: mousePosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-8 h-8 rounded-full opacity-5 blur-lg bg-gray-400" />
+          <div className="absolute inset-1 w-6 h-6 rounded-full opacity-8 blur-md bg-gray-400" />
+          <div className="absolute inset-2 w-4 h-4 rounded-full opacity-12 blur-sm bg-gray-400" />
+          <div className="absolute inset-3 w-2 h-2 rounded-full opacity-15 blur-xs bg-gray-400" />
+          <div className="absolute inset-3.5 w-1 h-1 rounded-full opacity-20 bg-gray-300" />
+        </div>
+      )}
+
+      {/* Hover entry ripple effect - matching sidebar navigation */}
+      {showHoverRipple && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: hoverRipplePosition.x,
+            top: hoverRipplePosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-0 h-0 rounded-full opacity-25 blur-sm animate-hover-ripple bg-gray-300" />
+        </div>
+      )}
+
+      {/* Click ripple effect - matching sidebar navigation */}
+      {isClicked && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: clickPosition.x,
+            top: clickPosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-0 h-0 rounded-full opacity-40 blur-sm animate-ripple bg-gray-200" />
+        </div>
+      )}
+
+      {/* Content with proper z-index */}
+      <input 
+        type="checkbox"
+        checked={isSelected}
+        onChange={onToggle}
+        className="pointer-events-none h-4 w-4 relative z-10"
+      />
+      <div className="flex-1 min-w-0 relative z-10">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-sm truncate">
+            {topic.name}
+          </span>
+          <span className="ml-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
+            {topic.materialCount} material{topic.materialCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+      {isSelected && (
+        <Check className="h-4 w-4 text-primary flex-shrink-0 relative z-10" />
+      )}
+    </div>
+  );
 }
 
 export function TopicSelector({
@@ -106,14 +251,14 @@ export function TopicSelector({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{error}</p>
-          <Button 
+          <AnimatedButton 
             variant="outline" 
             size="sm" 
             onClick={fetchTopics}
             className="mt-2"
           >
             Try Again
-          </Button>
+          </AnimatedButton>
         </CardContent>
       </Card>
     )
@@ -139,23 +284,23 @@ export function TopicSelector({
       <CardContent className="pt-6">
         {/* Select All/None Controls */}
         <div className="flex flex-wrap gap-2 mb-2">
-          <Button
+          <AnimatedButton
             variant="outline"
             size="sm"
             onClick={handleSelectAll}
             className="h-8"
           >
             {selectedTopics.length === topics.length ? 'Deselect All' : 'Select All'}
-          </Button>
+          </AnimatedButton>
           {selectedTopics.length > 0 && (
-            <Button
+            <AnimatedButton
               variant="outline"
               size="sm"
               onClick={handleSelectNone}
               className="h-8"
             >
               Clear Selection
-            </Button>
+            </AnimatedButton>
           )}
           <div className="text-xs text-muted-foreground self-center ml-auto">
             {selectedTopics.length} of {topics.length} topics selected
@@ -168,33 +313,12 @@ export function TopicSelector({
             const isSelected = selectedTopics.includes(topic.name)
             
             return (
-              <div
+              <AnimatedTopicRow
                 key={topic.name}
-                className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer hover:bg-accent ${
-                  isSelected ? 'bg-accent border-primary' : 'border-border'
-                }`}
-                onClick={() => handleTopicToggle(topic.name)}
-              >
-                <input 
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => handleTopicToggle(topic.name)}
-                  className="pointer-events-none h-4 w-4"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm truncate">
-                      {topic.name}
-                    </span>
-                    <span className="ml-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                      {topic.materialCount} material{topic.materialCount !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-                {isSelected && (
-                  <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                )}
-              </div>
+                topic={topic}
+                isSelected={isSelected}
+                onToggle={() => handleTopicToggle(topic.name)}
+              />
             )
           })}
         </div>

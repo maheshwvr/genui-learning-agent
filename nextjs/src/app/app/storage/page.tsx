@@ -5,6 +5,7 @@ import { useGlobal } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { AnimatedButton } from '@/components/ui/animated-button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -12,7 +13,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DragDropZone } from '@/components/ui/drag-drop-zone';
 import { TopicAssociationDropdown } from '@/components/ui/topic-association-dropdown';
 import { TopicUploadSelector } from '@/components/ui/topic-upload-selector';
-import { CourseTopicBanner } from '@/components/ui/course-topic-banner';
 import { UploadProgress } from '@/components/ui/upload-progress';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus } from 'lucide-react';
@@ -325,7 +325,7 @@ export default function MaterialsManagementPage() {
                                                         onTopicsChange={setUploadTopics}
                                                     />
                                                     <div className="flex justify-end space-x-2">
-                                                        <Button
+                                                        <AnimatedButton
                                                             variant="outline"
                                                             onClick={() => {
                                                                 setShowUploadDialog(false);
@@ -334,7 +334,7 @@ export default function MaterialsManagementPage() {
                                                             }}
                                                         >
                                                             Cancel
-                                                        </Button>
+                                                        </AnimatedButton>
                                                         <Button
                                                             onClick={handleDialogUpload}
                                                             disabled={!fileToUpload || tusUpload.isUploading}
@@ -359,13 +359,6 @@ export default function MaterialsManagementPage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <CourseTopicBanner
-                                        courseId={selectedCourse.id}
-                                        courseName={selectedCourse.name}
-                                        topics={topics}
-                                        onTopicsChange={() => loadCourseMaterials(selectedCourse.id)}
-                                    />
-
                                     <DragDropZone
                                         onFilesDropped={handleFileUpload}
                                         disabled={tusUpload.isUploading}

@@ -1,15 +1,16 @@
 'use client'
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ScrollToBottomButton } from '@/components/ui/scroll-to-bottom-button'
-import { Bot, Send, User } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { type Message } from 'ai'
 import ReactMarkdown from 'react-markdown'
+import iconGrey from '@/app/icon_grey.png'
+import userIcon from '@/app/user.png'
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
 import { MCQComponent } from '@/components/ui/mcq-component'
 import { MCQLoading } from '@/components/ui/mcq-loading'
@@ -700,7 +701,7 @@ export function Chat({
           <div className="space-y-4" style={{ scrollMarginBottom: '1rem' }}>
             {messages.filter(m => !(m.role === 'user' && (m.content.startsWith('SILENT_SUMMARY:') || m.content === '__INITIAL_CONTEXT_MESSAGE__'))).length === 0 && (
               <div className="text-center text-muted-foreground py-8">
-                <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <img src={iconGrey.src} alt="AI Assistant" className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Start learning! Ask me anything you&apos;d like to know.</p>
               </div>
             )}
@@ -766,11 +767,7 @@ export function Chat({
                           }`}
                         >
                           {message.role === 'assistant' && (
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback>
-                                <Bot className="w-4 h-4" />
-                              </AvatarFallback>
-                            </Avatar>
+                            <img src={iconGrey.src} alt="AI Assistant" className="w-8 h-8 flex-shrink-0" />
                           )}
                           
                           <div
@@ -817,11 +814,7 @@ export function Chat({
                           </div>
                           
                           {message.role === 'user' && (
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback>
-                                <User className="w-4 h-4" />
-                              </AvatarFallback>
-                            </Avatar>
+                            <img src={userIcon.src} alt="User" className="w-8 h-8 flex-shrink-0" />
                           )}
                         </div>
                       )}
@@ -1055,11 +1048,7 @@ export function Chat({
                     return (
                       <div key={message.id} className="space-y-4">
                         <div className="flex gap-3 justify-start">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback>
-                              <Bot className="w-4 h-4" />
-                            </AvatarFallback>
-                          </Avatar>
+                          <img src={iconGrey.src} alt="AI Assistant" className="w-8 h-8 flex-shrink-0" />
                           <div className="max-w-[80%] rounded-lg px-4 py-2 bg-muted">
                             <p className="text-sm text-red-500">Error rendering message content</p>
                           </div>
@@ -1072,11 +1061,7 @@ export function Chat({
               
               {isGenerating && (
                 <div className="flex gap-3 justify-start">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback>
-                      <Bot className="w-4 h-4" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <img src={iconGrey.src} alt="AI Assistant" className="w-8 h-8 flex-shrink-0" />
                   {assessmentGeneratingType === 'mcq' ? (
                     <div className="flex-1">
                       <MCQLoading />

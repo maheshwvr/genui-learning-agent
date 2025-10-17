@@ -79,14 +79,14 @@ export function MCQComponent({
   };
 
   const getOptionStyles = (option: MCQOption) => {
-    const baseStyles = "w-full text-left p-2 rounded-lg border-2 transition-all duration-200 hover:shadow-md";
+    const baseStyles = "w-full text-left p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md";
     
     if (!isSubmitted) {
       return cn(
         baseStyles,
         selectedOptionId === option.id
-          ? "border-primary bg-primary/10 shadow-md"
-          : "border-border hover:border-primary/50",
+          ? "border-purple-500 bg-purple-100 shadow-md"
+          : "border-border hover:border-purple-300",
         "cursor-pointer"
       );
     }
@@ -179,7 +179,7 @@ export function MCQComponent({
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {mcq.options.map((option) => (
           <button
             key={option.id}

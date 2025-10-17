@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lesson } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { AnimatedButton } from '@/components/ui/animated-button'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
@@ -18,6 +19,150 @@ interface LessonsResponse {
   hasMore: boolean
   page: number
   limit: number
+}
+
+// Animated Lesson Card Component
+interface AnimatedLessonCardProps {
+  lesson: Lesson;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+function AnimatedLessonCard({ lesson, isSelected, onSelect }: AnimatedLessonCardProps) {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+  const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
+  const [showHoverRipple, setShowHoverRipple] = useState(false);
+  const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMousePosition({ x, y });
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setHoverRipplePosition({ x, y });
+    setIsHovered(true);
+    setShowHoverRipple(true);
+    
+    setTimeout(() => {
+      setShowHoverRipple(false);
+    }, 800);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setClickPosition({ x, y });
+    setIsClicked(true);
+    
+    setTimeout(() => {
+      setIsClicked(false);
+    }, 1000);
+    
+    onSelect();
+  };
+
+  const colors = isSelected ? 'bg-blue-400' : 'bg-gray-400';
+  const colorCenter = isSelected ? 'bg-blue-300' : 'bg-gray-300';
+  const clickColor = isSelected ? 'bg-blue-200' : 'bg-gray-200';
+
+  return (
+    <div
+      ref={cardRef}
+      className={`
+        relative p-3 rounded-lg border cursor-pointer transition-colors overflow-hidden
+        ${isSelected 
+          ? 'border-blue-500 bg-blue-50' 
+          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+        }
+      `}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      {/* Hover glow effect */}
+      {isHovered && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: mousePosition.x,
+            top: mousePosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className={`w-8 h-8 rounded-full opacity-5 blur-lg ${colors}`} />
+          <div className={`absolute inset-1 w-6 h-6 rounded-full opacity-8 blur-md ${colors}`} />
+          <div className={`absolute inset-2 w-4 h-4 rounded-full opacity-12 blur-sm ${colors}`} />
+          <div className={`absolute inset-3 w-2 h-2 rounded-full opacity-15 blur-xs ${colors}`} />
+          <div className={`absolute inset-3.5 w-1 h-1 rounded-full opacity-20 ${colorCenter}`} />
+        </div>
+      )}
+
+      {/* Hover entry ripple effect */}
+      {showHoverRipple && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: hoverRipplePosition.x,
+            top: hoverRipplePosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className={`w-0 h-0 rounded-full opacity-25 blur-sm animate-hover-ripple ${colorCenter}`} />
+        </div>
+      )}
+
+      {/* Click ripple effect */}
+      {isClicked && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: clickPosition.x,
+            top: clickPosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className={`w-0 h-0 rounded-full opacity-40 blur-sm animate-ripple ${clickColor}`} />
+        </div>
+      )}
+
+      {/* Content with proper z-index */}
+      <div className="flex justify-between items-start relative z-10">
+        <div className="flex-1">
+          <h4 className="font-medium text-sm">{lesson.title}</h4>
+          <div className="text-xs text-gray-500 mt-1">
+            {lesson.messages.length} messages
+          </div>
+        </div>
+        <div className="text-xs text-gray-400">
+          Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function LessonSelector({ currentLessonId, onLessonSelect }: LessonSelectorProps) {
@@ -142,29 +287,12 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
               <>
                 <div className="grid gap-2">
                   {lessons.map((lesson) => (
-                    <div
+                    <AnimatedLessonCard
                       key={`lesson_${lesson.id}_${lesson.updated_at}`}
-                      className={`
-                        p-3 rounded-lg border cursor-pointer transition-colors
-                        ${currentLessonId === lesson.id 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }
-                      `}
-                      onClick={() => handleLessonSelect(lesson.id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{lesson.title}</h4>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {lesson.messages.length} messages
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
+                      lesson={lesson}
+                      isSelected={currentLessonId === lesson.id}
+                      onSelect={() => handleLessonSelect(lesson.id)}
+                    />
                   ))}
                 </div>
                 
@@ -177,13 +305,13 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
                         <span className="text-sm text-gray-600">Loading more...</span>
                       </div>
                     ) : (
-                      <Button
+                      <AnimatedButton
                         variant="outline"
                         onClick={loadMoreLessons}
                         className="w-full"
                       >
                         See More ({totalCount - lessons.length} remaining)
-                      </Button>
+                      </AnimatedButton>
                     )}
                   </div>
                 )}

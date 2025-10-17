@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AnimatedButton } from '@/components/ui/animated-button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -11,6 +12,198 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useGlobal } from '@/lib/context/GlobalContext'
+
+// Animated Course Card Component
+interface AnimatedCourseCardProps {
+  course: Course;
+  isSelected: boolean;
+  onSelect: () => void;
+  showDeleteButton?: boolean;
+  onDelete?: (courseId: string) => void;
+  showMaterialCount?: boolean;
+  deleting?: boolean;
+}
+
+function AnimatedCourseCard({ 
+  course, 
+  isSelected, 
+  onSelect, 
+  showDeleteButton = false, 
+  onDelete,
+  showMaterialCount = true,
+  deleting = false
+}: AnimatedCourseCardProps) {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
+  const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
+  const [showHoverRipple, setShowHoverRipple] = useState(false);
+  const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMousePosition({ x, y });
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setHoverRipplePosition({ x, y });
+    setIsHovered(true);
+    setShowHoverRipple(true);
+    
+    setTimeout(() => {
+      setShowHoverRipple(false);
+    }, 800);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setClickPosition({ x, y });
+    setIsClicked(true);
+    
+    setTimeout(() => {
+      setIsClicked(false);
+    }, 1000);
+    
+    onSelect();
+  };
+
+  return (
+    <Card
+      ref={cardRef}
+      className={`relative cursor-pointer transition-all hover:shadow-md overflow-hidden ${
+        isSelected ? 'ring-2 ring-primary' : ''
+      }`}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      {/* Hover glow effect */}
+      {isHovered && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: mousePosition.x,
+            top: mousePosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-8 h-8 rounded-full opacity-5 blur-lg bg-primary-400" />
+          <div className="absolute inset-1 w-6 h-6 rounded-full opacity-8 blur-md bg-primary-400" />
+          <div className="absolute inset-2 w-4 h-4 rounded-full opacity-12 blur-sm bg-primary-400" />
+          <div className="absolute inset-3 w-2 h-2 rounded-full opacity-15 blur-xs bg-primary-400" />
+          <div className="absolute inset-3.5 w-1 h-1 rounded-full opacity-20 bg-primary-300" />
+        </div>
+      )}
+
+      {/* Hover entry ripple effect */}
+      {showHoverRipple && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: hoverRipplePosition.x,
+            top: hoverRipplePosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-0 h-0 rounded-full opacity-25 blur-sm animate-hover-ripple bg-primary-300" />
+        </div>
+      )}
+
+      {/* Click ripple effect */}
+      {isClicked && (
+        <div
+          className="absolute pointer-events-none z-0"
+          style={{
+            left: clickPosition.x,
+            top: clickPosition.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-0 h-0 rounded-full opacity-40 blur-sm animate-ripple bg-primary-200" />
+        </div>
+      )}
+
+      {/* Content with proper z-index */}
+      <CardHeader className="pb-3 relative z-10">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base line-clamp-2">
+              {course.name}
+            </CardTitle>
+            {course.description && (
+              <CardDescription className="line-clamp-2 mt-1">
+                {course.description}
+              </CardDescription>
+            )}
+          </div>
+          {showDeleteButton && onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 ml-2"
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{course.name}"? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(course.id)}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </CardHeader>
+      {showMaterialCount && (
+        <CardContent className="pt-0 relative z-10">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <FileText className="h-4 w-4 mr-1" />
+            {course.materialCount} {course.materialCount === 1 ? 'material' : 'materials'}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
 
 interface Course {
   id: string
@@ -192,15 +385,15 @@ export function CourseSelector({
           }
         }}>
           <DialogTrigger asChild>
-            <Button 
+            <AnimatedButton 
               variant="outline" 
               className="w-full md:w-auto"
               disabled={!user}
               title={!user ? "Please log in to create courses" : "Create a new course"}
+              icon={Plus}
             >
-              <Plus className="h-4 w-4 mr-2" />
               Create Course
-            </Button>
+            </AnimatedButton>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -281,71 +474,16 @@ export function CourseSelector({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {courses.map((course) => (
-            <Card
+            <AnimatedCourseCard
               key={course.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                selectedCourseId === course.id ? 'ring-2 ring-primary' : ''
-              }`}
-              onClick={() => onCourseSelect?.(course)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base line-clamp-2">
-                      {course.name}
-                    </CardTitle>
-                    {course.description && (
-                      <CardDescription className="line-clamp-2 mt-1">
-                        {course.description}
-                      </CardDescription>
-                    )}
-                  </div>
-                  {showDeleteButton && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 ml-2"
-                          onClick={(e) => e.stopPropagation()}
-                          disabled={deleting === course.id}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="flex items-center">
-                            <AlertTriangle className="h-5 w-5 text-destructive mr-2" />
-                            Delete Course
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{course.name}"? This will also delete all associated materials and cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteCourse(course.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete Course
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </CardHeader>
-              {showMaterialCount && (
-                <CardContent className="pt-0">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <FileText className="h-4 w-4 mr-1" />
-                    {course.materialCount} material{course.materialCount !== 1 ? 's' : ''}
-                  </div>
-                </CardContent>
-              )}
-            </Card>
+              course={course}
+              isSelected={selectedCourseId === course.id}
+              onSelect={() => onCourseSelect?.(course)}
+              showDeleteButton={showDeleteButton}
+              onDelete={deleteCourse}
+              showMaterialCount={showMaterialCount}
+              deleting={deleting === course.id}
+            />
           ))}
         </div>
       )}
