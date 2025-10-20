@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { AnimatedButton } from '@/components/ui/animated-button'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { Input } from '@/components/ui/input'
+import { Edit2 } from 'lucide-react'
 
 interface LessonSelectorProps {
   currentLessonId?: string
@@ -26,16 +28,21 @@ interface AnimatedLessonCardProps {
   lesson: Lesson;
   isSelected: boolean;
   onSelect: () => void;
+  onTitleUpdate?: (lessonId: string, newTitle: string) => void;
 }
 
-function AnimatedLessonCard({ lesson, isSelected, onSelect }: AnimatedLessonCardProps) {
+function AnimatedLessonCard({ lesson, isSelected, onSelect, onTitleUpdate }: AnimatedLessonCardProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
   const [showHoverRipple, setShowHoverRipple] = useState(false);
   const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(lesson.title);
+  const [isUpdating, setIsUpdating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -68,6 +75,8 @@ function AnimatedLessonCard({ lesson, isSelected, onSelect }: AnimatedLessonCard
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isEditing) return; // Don't navigate while editing
+    
     if (!cardRef.current) return;
     
     const rect = cardRef.current.getBoundingClientRect();
@@ -84,6 +93,73 @@ function AnimatedLessonCard({ lesson, isSelected, onSelect }: AnimatedLessonCard
     onSelect();
   };
 
+  const startEditing = () => {
+    setIsEditing(true);
+    setEditingTitle(lesson.title);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 50);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditingTitle(lesson.title);
+  };
+
+  const saveTitle = async () => {
+    if (!editingTitle.trim() || editingTitle === lesson.title) {
+      cancelEditing();
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/lessons/${lesson.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editingTitle.trim()
+        })
+      });
+
+      if (response.ok) {
+        setIsEditing(false);
+        // Notify parent to update the lesson list
+        if (onTitleUpdate) {
+          onTitleUpdate(lesson.id, editingTitle.trim());
+        }
+      } else {
+        console.error('Failed to update lesson title');
+        cancelEditing();
+      }
+    } catch (error) {
+      console.error('Error updating lesson title:', error);
+      cancelEditing();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTitle();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEditing();
+    }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    startEditing();
+  };
+
   const colors = isSelected ? 'bg-blue-400' : 'bg-gray-400';
   const colorCenter = isSelected ? 'bg-blue-300' : 'bg-gray-300';
   const clickColor = isSelected ? 'bg-blue-200' : 'bg-gray-200';
@@ -92,11 +168,12 @@ function AnimatedLessonCard({ lesson, isSelected, onSelect }: AnimatedLessonCard
     <div
       ref={cardRef}
       className={`
-        relative p-3 rounded-lg border cursor-pointer transition-colors overflow-hidden
+        group relative p-3 rounded-lg border cursor-pointer transition-colors overflow-hidden
         ${isSelected 
           ? 'border-blue-500 bg-blue-50' 
           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
         }
+        ${isEditing ? 'cursor-default' : 'cursor-pointer'}
       `}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
@@ -151,14 +228,40 @@ function AnimatedLessonCard({ lesson, isSelected, onSelect }: AnimatedLessonCard
 
       {/* Content with proper z-index */}
       <div className="flex justify-between items-start relative z-10">
-        <div className="flex-1">
-          <h4 className="font-medium text-sm">{lesson.title}</h4>
+        <div className="flex-1 mr-2">
+          {isEditing ? (
+            <Input
+              ref={inputRef}
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={saveTitle}
+              className="border-0 p-0 h-auto font-medium text-sm bg-transparent focus:ring-0 focus:border-0"
+              disabled={isUpdating}
+            />
+          ) : (
+            <h4 className="font-medium text-sm">{lesson.title}</h4>
+          )}
           <div className="text-xs text-gray-500 mt-1">
             {lesson.messages.length} messages
           </div>
         </div>
-        <div className="text-xs text-gray-400">
-          Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
+        <div className="flex items-center gap-2">
+          {/* Edit button - shows on hover */}
+          {isHovered && !isEditing && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleEditClick}
+              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 hover:bg-gray-100"
+              disabled={isUpdating}
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+          )}
+          <div className="text-xs text-gray-400 text-right">
+            Created: {new Date(lesson.created_at).toLocaleDateString()} at {new Date(lesson.created_at).toLocaleTimeString()}
+          </div>
         </div>
       </div>
     </div>
@@ -255,6 +358,17 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
     }
   }
 
+  // Handle lesson title update
+  const handleLessonTitleUpdate = (lessonId: string, newTitle: string) => {
+    setLessons(prevLessons => 
+      prevLessons.map(lesson => 
+        lesson.id === lessonId 
+          ? { ...lesson, title: newTitle }
+          : lesson
+      )
+    );
+  };
+
   // Handle lesson selection
   const handleLessonSelect = (lessonId: string) => {
     if (onLessonSelect) {
@@ -292,6 +406,7 @@ export default function LessonSelector({ currentLessonId, onLessonSelect }: Less
                       lesson={lesson}
                       isSelected={currentLessonId === lesson.id}
                       onSelect={() => handleLessonSelect(lesson.id)}
+                      onTitleUpdate={handleLessonTitleUpdate}
                     />
                   ))}
                 </div>

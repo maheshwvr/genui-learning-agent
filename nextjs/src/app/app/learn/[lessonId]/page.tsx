@@ -107,6 +107,41 @@ export default function LessonPage() {
     append(message);
   }, [append, isProcessingRequest]);
 
+  // Handle lesson title change
+  const handleTitleChange = async (newTitle: string) => {
+    if (!lesson) return;
+    
+    const previousTitle = lesson.title;
+    
+    // Optimistic update
+    setLesson(prev => prev ? { ...prev, title: newTitle } : null);
+    
+    try {
+      const response = await fetch(`/api/lessons/${lessonId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTitle
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update lesson title');
+      }
+      
+      // Update with server response
+      const data = await response.json();
+      setLesson(data.lesson);
+    } catch (error) {
+      // Rollback on error
+      setLesson(prev => prev ? { ...prev, title: previousTitle } : null);
+      console.error('Error updating lesson title:', error);
+      throw error; // Re-throw to let PageHeader handle the error
+    }
+  };
+
   // Save current messages to lesson
   const saveMessagesToLesson = useCallback(async () => {
     if (!lessonId || messages.length === 0) return;
@@ -408,6 +443,8 @@ export default function LessonPage() {
           <PageHeader
             title={lesson.title}
             description={`Created: ${new Date(lesson.created_at).toLocaleDateString()} • Last updated: ${new Date(lesson.updated_at).toLocaleDateString()}`}
+            editable={true}
+            onTitleChange={handleTitleChange}
           />
         </div>
       </div>
