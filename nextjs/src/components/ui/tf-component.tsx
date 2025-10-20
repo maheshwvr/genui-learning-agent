@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { MarkdownRenderer } from '@/lib/markdown-renderer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, HelpCircle } from 'lucide-react';
@@ -35,31 +35,7 @@ export function TFComponent({
     selectedAnswers.hasOwnProperty(statement.id)
   );
 
-  // Types for markdown component props - made compatible with ReactMarkdown
-  interface MarkdownComponentProps {
-    children?: React.ReactNode;
-  }
 
-  interface LinkProps extends MarkdownComponentProps {
-    href?: string;
-  }
-
-  // Custom markdown components for TF content (same as MCQ)
-  const markdownComponents = {
-    h1: ({ children }: MarkdownComponentProps) => <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>,
-    h2: ({ children }: MarkdownComponentProps) => <h2 className="text-sm font-semibold mt-2 mb-1">{children}</h2>,
-    h3: ({ children }: MarkdownComponentProps) => <h3 className="text-sm font-medium mt-1 mb-1">{children}</h3>,
-    p: ({ children }: MarkdownComponentProps) => <p className="text-sm mb-1 last:mb-0">{children}</p>,
-    strong: ({ children }: MarkdownComponentProps) => <strong className="font-semibold">{children}</strong>,
-    em: ({ children }: MarkdownComponentProps) => <em className="italic">{children}</em>,
-    code: ({ children }: MarkdownComponentProps) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-    pre: ({ children }: MarkdownComponentProps) => <pre className="bg-muted p-2 rounded text-xs font-mono overflow-x-auto my-1">{children}</pre>,
-    ul: ({ children }: MarkdownComponentProps) => <ul className="list-disc pl-4 mb-1 space-y-0.5">{children}</ul>,
-    ol: ({ children }: MarkdownComponentProps) => <ol className="list-decimal pl-4 mb-1 space-y-0.5">{children}</ol>,
-    li: ({ children }: MarkdownComponentProps) => <li className="text-sm">{children}</li>,
-    blockquote: ({ children }: MarkdownComponentProps) => <blockquote className="border-l-2 border-muted-foreground pl-2 italic my-1">{children}</blockquote>,
-    a: ({ children, href }: LinkProps) => <a href={href} className="text-primary hover:underline text-sm">{children}</a>,
-  };
 
   const handleAnswerSelect = (statementId: string, isTrue: boolean) => {
     if (isSubmitted) return;
@@ -225,9 +201,9 @@ export function TFComponent({
                   {statement.id}
                 </span>
                 <div className="text-sm flex-1">
-                  <ReactMarkdown components={markdownComponents}>
+                  <MarkdownRenderer variant="lesson">
                     {statement.text}
-                  </ReactMarkdown>
+                  </MarkdownRenderer>
                 </div>
               </div>
               
@@ -259,9 +235,9 @@ export function TFComponent({
                     Correct answer: {statement.isTrue ? 'True' : 'False'}
                   </span>
                   <div className="mt-1">
-                    <ReactMarkdown components={markdownComponents}>
+                    <MarkdownRenderer variant="lesson">
                       {statement.explanation}
-                    </ReactMarkdown>
+                    </MarkdownRenderer>
                   </div>
                 </div>
               </div>
@@ -304,9 +280,9 @@ export function TFComponent({
               })()}
             </div>
             <div className="text-xs text-muted-foreground leading-relaxed">
-              <ReactMarkdown components={markdownComponents}>
+              <MarkdownRenderer variant="lesson">
                 {tf.overallExplanation}
-              </ReactMarkdown>
+              </MarkdownRenderer>
             </div>
           </div>
         )}

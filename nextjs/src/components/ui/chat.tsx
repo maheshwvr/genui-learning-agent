@@ -8,8 +8,9 @@ import { ScrollToBottomButton } from '@/components/ui/scroll-to-bottom-button'
 import { Send } from 'lucide-react'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { type Message } from 'ai'
-import ReactMarkdown from 'react-markdown'
+import { MarkdownRenderer } from '@/lib/markdown-renderer'
 import iconGrey from '@/app/icon_grey.png'
+import darkIcon from '@/app/icon.png'
 import userIcon from '@/app/user.png'
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
 import { MCQComponent } from '@/components/ui/mcq-component'
@@ -701,8 +702,7 @@ export function Chat({
           <div className="space-y-4" style={{ scrollMarginBottom: '1rem' }}>
             {messages.filter(m => !(m.role === 'user' && (m.content.startsWith('SILENT_SUMMARY:') || m.content === '__INITIAL_CONTEXT_MESSAGE__'))).length === 0 && (
               <div className="text-center text-muted-foreground py-8">
-                <img src={iconGrey.src} alt="AI Assistant" className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Start learning! Ask me anything you&apos;d like to know.</p>
+                <img src={darkIcon.src} alt="AI Assistant" className="w-12 h-12 mx-auto mb-4 opacity-80" />
               </div>
             )}
               
@@ -780,36 +780,12 @@ export function Chat({
                             {message.role === 'user' ? (
                               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                             ) : (
-                              <ReactMarkdown
-                                components={{
-                                  h1: ({ children }) => <h1 className="text-lg font-bold mt-3 mb-2">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-base font-semibold mt-2 mb-1">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-sm font-medium mt-2 mb-1">{children}</h3>,
-                                  h4: ({ children }) => <h4 className="text-sm font-medium mt-1 mb-1">{children}</h4>,
-                                  h5: ({ children }) => <h5 className="text-sm font-medium mt-1 mb-1">{children}</h5>,
-                                  h6: ({ children }) => <h6 className="text-sm font-medium mt-1 mb-1">{children}</h6>,
-                                  p: ({ children }) => <p className="text-sm mb-2 last:mb-0">{children}</p>,
-                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                  em: ({ children }) => <em className="italic">{children}</em>,
-                                  code: ({ children }) => <code className="bg-muted-foreground/10 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-                                  pre: ({ children }) => <pre className="bg-muted-foreground/10 p-2 rounded-lg overflow-x-auto text-xs font-mono mb-2 last:mb-0">{children}</pre>,
-                                  ul: ({ children }) => <ul className="list-disc pl-4 mb-2 last:mb-0 space-y-1">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 last:mb-0 space-y-1">{children}</ol>,
-                                  li: ({ children }) => <li className="text-sm">{children}</li>,
-                                  blockquote: ({ children }) => <blockquote className="border-l-2 border-muted-foreground/30 pl-3 italic my-2 last:mb-0">{children}</blockquote>,
-                                  a: ({ children, href }) => <a href={href} className="text-primary hover:underline">{children}</a>,
-                                  hr: () => <hr className="border-muted-foreground/20 my-2" />,
-                                  table: ({ children }) => <table className="min-w-full border-collapse border border-muted-foreground/20 mb-2 last:mb-0">{children}</table>,
-                                  thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
-                                  tbody: ({ children }) => <tbody>{children}</tbody>,
-                                  tr: ({ children }) => <tr className="border-b border-muted-foreground/20">{children}</tr>,
-                                  th: ({ children }) => <th className="border border-muted-foreground/20 px-2 py-1 text-xs font-medium text-left">{children}</th>,
-                                  td: ({ children }) => <td className="border border-muted-foreground/20 px-2 py-1 text-xs">{children}</td>,
-                                }}
+                              <MarkdownRenderer 
+                                variant="chat"
                                 className="prose prose-sm max-w-none"
                               >
                                 {cleanedContent}
-                              </ReactMarkdown>
+                              </MarkdownRenderer>
                             )}
                           </div>
                           
