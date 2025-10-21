@@ -96,19 +96,28 @@ async function streamNativeWithFiles(
 
     return mockStreamResult.toDataStreamResponse();
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error with GoogleGenAI file processing:', error);
+    
+    // If it's a permission error (403), it might be due to expired/invalid file URIs
+    if (error.status === 403 || error.message?.includes('permission') || error.message?.includes('PERMISSION_DENIED')) {
+      console.log('Permission error detected - this might be due to expired cached file URIs. The system will automatically re-upload files in the next request.');
+    }
     
     // Fall back to regular AI SDK without files
     console.log('Falling back to AI SDK without files...');
-    return streamText({
+    
+    // Create a fresh streamText result without files
+    const fallbackResult = await streamText({
       model: google('gemini-2.5-flash-lite'),
       temperature: 0.5,
       topP: 0.8,
       topK: 40,
       messages: messages,
       system: systemPrompt,
-    }).toTextStreamResponse();
+    });
+
+    return fallbackResult.toDataStreamResponse();
   }
 }
 

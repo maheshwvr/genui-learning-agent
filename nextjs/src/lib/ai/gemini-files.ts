@@ -241,25 +241,52 @@ export async function processLessonMaterialsWithUpload(
       }
 
       // Check if we already have a cached Google file URI
-      if (material.google_file_uri) {
+      if (material.google_file_uri && material.google_file_uri.trim()) {
         console.log(`Using cached Google file URI for ${material.file_name}: ${material.google_file_uri}`);
         
-        // Use the cached URI
-        materialFileData.push({
-          fileUri: material.google_file_uri,
-          mimeType: material.mime_type
-        });
+        try {
+          // Validate that the cached URI is still accessible by attempting to get file info
+          // Extract the file name from the Google URI (format: https://generativelanguage.googleapis.com/v1beta/files/{file_id})
+          const fileId = material.google_file_uri.split('/').pop() || '';
+          
+          if (!fileId) {
+            throw new Error('Invalid Google file URI format');
+          }
+          
+          const cachedFile = await ai.files.get({ name: fileId });
+          
+          if (cachedFile && (cachedFile.state === 'ACTIVE' || cachedFile.state === 'PROCESSING')) {
+            // Cached URI is still valid, use it
+            materialFileData.push({
+              fileUri: material.google_file_uri,
+              mimeType: material.mime_type
+            });
 
-        processedMaterials.push({
-          id: material.id,
-          name: material.file_name,
-          uri: material.google_file_uri,
-          mimeType: material.mime_type,
-          fileSize: material.file_size
-        });
+            processedMaterials.push({
+              id: material.id,
+              name: material.file_name,
+              uri: material.google_file_uri,
+              mimeType: material.mime_type,
+              fileSize: material.file_size
+            });
 
-        console.log(`Successfully processed cached material: ${material.file_name}`);
-        continue;
+            console.log(`Successfully processed cached material: ${material.file_name}`);
+            continue;
+          } else {
+            throw new Error(`File state is ${cachedFile?.state || 'unknown'}, not accessible`);
+          }
+        } catch (validationError: any) {
+          // If validation fails (403, 404, etc.), clear the cached URI and proceed to re-upload
+          console.log(`Cached Google file URI for ${material.file_name} is no longer valid (${validationError.message}), clearing cache and re-uploading...`);
+          
+          try {
+            // Clear the invalid cached URI from database
+            await updateMaterialGoogleUri(material.id, '');
+            console.log(`Cleared invalid cached URI for ${material.file_name}`);
+          } catch (clearError) {
+            console.warn(`Failed to clear invalid cached URI for ${material.file_name}:`, clearError);
+          }
+        }
       }
 
       // No cached URI, need to upload to Google

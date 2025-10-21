@@ -42,7 +42,7 @@ interface Course {
 }
 
 export default function MaterialsManagementPage() {
-    const { user } = useGlobal();
+    const { user, loading: authLoading } = useGlobal();
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
@@ -68,8 +68,14 @@ export default function MaterialsManagementPage() {
         setCoursesLoading(loading);
     };
 
-    // Fetch courses directly in this component
+    // Fetch courses directly in this component - only when authenticated
     const fetchCourses = useCallback(async () => {
+        // Don't fetch if user is not authenticated
+        if (!user) {
+            setCoursesLoading(false);
+            return;
+        }
+
         try {
             console.log('Materials page: Starting to fetch courses');
             setCoursesLoading(true);
@@ -89,12 +95,14 @@ export default function MaterialsManagementPage() {
             console.log('Materials page: Setting courses loading to false');
             setCoursesLoading(false);
         }
-    }, []);
+    }, [user]);
 
-    // Fetch courses on mount
+    // Fetch courses on mount - only after auth loading is complete
     useEffect(() => {
-        fetchCourses();
-    }, [fetchCourses]);
+        if (!authLoading) {
+            fetchCourses();
+        }
+    }, [fetchCourses, authLoading]);
 
     // TUS upload hook
     const tusUpload = useTusUpload({

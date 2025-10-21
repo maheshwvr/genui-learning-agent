@@ -7,6 +7,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Brain, BookOpen, Filter, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useGlobal } from '@/lib/context/GlobalContext';
 import { SavedFlashcard, getUserFlashcards, deleteFlashcard } from '@/lib/supabase/flashcards';
 import { getUserCourses } from '@/lib/supabase/courses';
 import { CourseFlashcardGroup } from '@/components/ui/course-flashcard-group';
@@ -27,6 +28,7 @@ interface FlashcardLibraryProps {
 }
 
 export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
+  const { loading: authLoading, user } = useGlobal();
   const [flashcards, setFlashcards] = useState<SavedFlashcard[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [groupedFlashcards, setGroupedFlashcards] = useState<GroupedFlashcards>({});
@@ -39,8 +41,14 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
   const [studyModeOpen, setStudyModeOpen] = useState(false);
   const [studyFlashcards, setStudyFlashcards] = useState<SavedFlashcard[]>([]);
 
-  // Fetch data
+  // Fetch data - only when user is authenticated
   const fetchData = useCallback(async () => {
+    // Don't fetch if user is not authenticated
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -55,11 +63,17 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
       setCourses(coursesData);
     } catch (err) {
       console.error('Error fetching flashcard library data:', err);
-      setError('Failed to load flashcard library. Please try again.');
+      
+      // Handle authentication errors specifically
+      if (err instanceof Error && err.message.includes('not authenticated')) {
+        setError('Please sign in again to access your flashcard library.');
+      } else {
+        setError('Failed to load flashcard library. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Group flashcards by course
   const groupFlashcardsByCourse = useCallback((flashcardsToGroup: SavedFlashcard[], coursesToGroup: Course[]) => {
@@ -109,10 +123,12 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
     setGroupedFlashcards(grouped);
   }, [flashcards, courses, selectedCourseFilter, groupFlashcardsByCourse, getFilteredFlashcards]);
 
-  // Fetch data on mount
+  // Fetch data on mount - only after auth loading is complete
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [fetchData, authLoading]);
 
   // Delete flashcard handler
   const handleFlashcardDelete = useCallback(async (flashcardId: string) => {
@@ -159,12 +175,29 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
   const totalFlashcards = flashcards.length;
   const filteredTotal = Object.values(groupedFlashcards).reduce((sum, group) => sum + group.flashcards.length, 0);
 
-  if (loading) {
+  // Show loading while authentication is being checked or data is being fetched
+  if (authLoading || loading) {
     return (
       <Card className={cn("w-full", className)}>
         <CardContent className="p-6">
           <div className="flex items-center justify-center py-8">
             <LoadingSpinner />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show message if user is not authenticated
+  if (!user) {
+    return (
+      <Card className={cn("w-full", className)}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Please sign in to view your flashcard library.</p>
+            </div>
           </div>
         </CardContent>
       </Card>

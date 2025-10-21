@@ -64,7 +64,9 @@ export async function getCourseMaterials(courseId: string): Promise<Material[]> 
   try {
     const supabase = await getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return []
+    }
 
     const { data, error } = await supabase
       .from('materials')

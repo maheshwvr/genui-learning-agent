@@ -1,12 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createCourse, getUserCoursesWithMaterialCount, deleteCourse } from '@/lib/supabase/courses'
+import { createCourse, deleteCourse } from '@/lib/supabase/courses'
+import { createSSRClient } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    const courses = await getUserCoursesWithMaterialCount()
-    return NextResponse.json({ courses })
+    // Use server-side client for API routes
+    const supabase = await createSSRClient()
+    
+    // Check authentication in server context
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (!user || userError) {
+      return NextResponse.json({ courses: [] })
+    }
+
+    // Fetch courses directly in the API route
+    const { data: courses, error: coursesError } = await (supabase as any)
+      .from('courses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (coursesError) {
+      throw coursesError
+    }
+
+    // Get material counts for each course
+    const coursesWithCounts = await Promise.all(
+      (courses || []).map(async (course: any) => {
+        const { count, error: countError } = await (supabase as any)
+          .from('materials')
+          .select('*', { count: 'exact', head: true })
+          .eq('course_id', course.id)
+          .eq('user_id', user.id)
+
+        if (countError) {
+          console.error('Error counting materials for course:', course.id, countError)
+          return { ...course, materialCount: 0 }
+        }
+
+        return { ...course, materialCount: count || 0 }
+      })
+    )
+
+    return NextResponse.json({ courses: coursesWithCounts })
   } catch (error) {
-    console.error('Error fetching courses:', error)
+    console.error('Error in GET /api/courses:', error)
     return NextResponse.json(
       { error: 'Failed to fetch courses' },
       { status: 500 }
@@ -16,28 +55,21 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('POST /api/courses called')
     const body = await request.json()
-    console.log('Request body:', body)
     const { name, description } = body
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      console.log('Invalid name provided:', name)
       return NextResponse.json(
         { error: 'Course name is required' },
         { status: 400 }
       )
     }
 
-    console.log('Creating course with data:', { name: name.trim(), description })
     const course = await createCourse({
       name: name.trim(),
       description: description || null
     })
 
-    console.log('Course creation result:', course)
-
-    console.log('Course created successfully, returning:', course)
     return NextResponse.json({ course }, { status: 201 })
   } catch (error) {
     console.error('Error creating course:', error)

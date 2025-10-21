@@ -62,7 +62,9 @@ export async function getCourse(courseId: string): Promise<Database['public']['T
   try {
     const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return null
+    }
 
     const { data, error } = await (supabase as any)
       .from('courses')
@@ -83,7 +85,9 @@ export async function getUserCourses(): Promise<Database['public']['Tables']['co
   try {
     const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return []
+    }
 
     const { data, error } = await (supabase as any)
       .from('courses')
@@ -103,7 +107,9 @@ export async function updateCourse(courseId: string, updates: Database['public']
   try {
     const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return null
+    }
 
     const { data, error } = await (supabase as any)
       .from('courses')
@@ -125,7 +131,9 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
   try {
     const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return false
+    }
 
     const { error } = await (supabase as any)
       .from('courses')
@@ -145,7 +153,9 @@ export async function getCourseWithMaterialCount(courseId: string): Promise<(Dat
   try {
     const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return null
+    }
 
     const { data: course, error: courseError } = await (supabase as any)
       .from('courses')
@@ -178,7 +188,9 @@ export async function getUserCoursesWithMaterialCount(): Promise<(Database['publ
   try {
     const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return []
+    }
 
     const { data: courses, error: coursesError } = await (supabase as any)
       .from('courses')

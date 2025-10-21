@@ -273,7 +273,9 @@ export async function getCourseTopics(courseId: string): Promise<TopicWithCount[
   try {
     const supabase = await getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    if (!user) {
+      return []
+    }
 
     // Get all topics for the course
     const { data: topics, error: topicsError } = await (supabase as any)

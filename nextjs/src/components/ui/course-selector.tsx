@@ -248,6 +248,12 @@ export function CourseSelector({
   const [error, setError] = useState<string | null>(null)
 
   const fetchCourses = async () => {
+    // Don't fetch if user is not authenticated
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
     try {
       console.log('CourseSelector: Starting to fetch courses')
       setLoading(true)
@@ -353,12 +359,12 @@ export function CourseSelector({
   }
 
   useEffect(() => {
-    // Only fetch if no external courses provided
-    if (!externalCourses) {
+    // Only fetch if no external courses provided and auth loading is complete
+    if (!externalCourses && !userLoading) {
       console.log('CourseSelector: Fetching courses on mount')
       fetchCourses()
     }
-  }, [externalCourses])
+  }, [externalCourses, userLoading, user])
 
   // Update courses when external courses change
   useEffect(() => {
