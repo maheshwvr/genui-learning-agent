@@ -1,14 +1,8 @@
 import { createSPAClient } from '@/lib/supabase/client'
-import { createSSRClient } from '@/lib/supabase/server'
 import { Database } from '@/lib/types'
 
-// Function to determine which client to use based on environment
-async function getSupabaseClient() {
-  // Check if we're on the server side (API routes)
-  if (typeof window === 'undefined') {
-    return await createSSRClient()
-  }
-  // Client side
+// For client-side operations, always use the SPA client
+function getSupabaseClient() {
   return createSPAClient()
 }
 
@@ -16,7 +10,7 @@ export async function createCourse(course: { name: string; description?: string 
   try {
     console.log('createCourse called with:', course)
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // First check if we have a valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -66,7 +60,7 @@ export async function createCourse(course: { name: string; description?: string 
 
 export async function getCourse(courseId: string): Promise<Database['public']['Tables']['courses']['Row'] | null> {
   try {
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -87,7 +81,7 @@ export async function getCourse(courseId: string): Promise<Database['public']['T
 
 export async function getUserCourses(): Promise<Database['public']['Tables']['courses']['Row'][]> {
   try {
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -107,7 +101,7 @@ export async function getUserCourses(): Promise<Database['public']['Tables']['co
 
 export async function updateCourse(courseId: string, updates: Database['public']['Tables']['courses']['Update']): Promise<Database['public']['Tables']['courses']['Row'] | null> {
   try {
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -129,7 +123,7 @@ export async function updateCourse(courseId: string, updates: Database['public']
 
 export async function deleteCourse(courseId: string): Promise<boolean> {
   try {
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -149,7 +143,7 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
 
 export async function getCourseWithMaterialCount(courseId: string): Promise<(Database['public']['Tables']['courses']['Row'] & { materialCount: number }) | null> {
   try {
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -182,7 +176,7 @@ export async function getCourseWithMaterialCount(courseId: string): Promise<(Dat
 
 export async function getUserCoursesWithMaterialCount(): Promise<(Database['public']['Tables']['courses']['Row'] & { materialCount: number })[]> {
   try {
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 

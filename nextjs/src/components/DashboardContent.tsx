@@ -4,6 +4,7 @@ import { useGlobal } from '@/lib/context/GlobalContext';
 import { getFirstName } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { FlashcardLibrary } from '@/components/ui/flashcard-library';
 import { CalendarDays, FolderOpen, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 
@@ -173,34 +174,36 @@ export default function DashboardContent() {
                     />
                 </div>
             </div>
-            <div className="flex-1 px-4 pb-4">
+            <div className="flex-1 px-4 pb-4 space-y-6 overflow-y-auto">
+                {/* Get Started Section */}
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="space-y-6">
+                            <div>
+                                <h2 className="text-xl font-semibold">Get Started</h2>
+                                <p className="text-muted-foreground mb-6">So much to learn, so little time</p>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <AnimatedLinkCard
+                                    href="/app/storage"
+                                    icon={FolderOpen}
+                                    title="Materials"
+                                    description="Upload and manage your study materials"
+                                />
 
-            {/* Get Started */}
-            <Card className="h-full">
-                <CardContent className="p-6 h-full">
-                    <div className="space-y-6 h-full">
-                        <div>
-                            <h2 className="text-xl font-semibold">Get Started</h2>
-                            <p className="text-muted-foreground mb-6">So much to learn, so little time</p>
+                                <AnimatedLinkCard
+                                    href="/app/learn"
+                                    icon={BookOpen}
+                                    title="Learn"
+                                    description="Start interactive lessons and courses"
+                                />
+                            </div>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <AnimatedLinkCard
-                                href="/app/storage"
-                                icon={FolderOpen}
-                                title="Materials"
-                                description="Upload and manage your study materials"
-                            />
+                    </CardContent>
+                </Card>
 
-                            <AnimatedLinkCard
-                                href="/app/learn"
-                                icon={BookOpen}
-                                title="Learn"
-                                description="Start interactive lessons and courses"
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                {/* Flashcard Library Section */}
+                <FlashcardLibrary />
             </div>
         </div>
     );

@@ -1,15 +1,9 @@
 import { createSPAClient } from '@/lib/supabase/client'
-import { createSSRClient } from '@/lib/supabase/server'
 import { Database } from '@/lib/types'
 import { Flashcard, FlashcardSet } from '@/lib/ai/lesson-schemas'
 
-// Function to determine which client to use based on environment
-async function getSupabaseClient() {
-  // Check if we're on the server side (API routes)
-  if (typeof window === 'undefined') {
-    return await createSSRClient()
-  }
-  // Client side
+// For client-side operations, always use the SPA client
+function getSupabaseClient() {
   return createSPAClient()
 }
 
@@ -29,7 +23,7 @@ export async function saveFlashcard(
   try {
     console.log('saveFlashcard called with:', { flashcard, courseId, topicTags, sourceLessonId })
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // Check for valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -84,7 +78,7 @@ export async function getUserFlashcards(
   try {
     console.log('getUserFlashcards called with:', { courseId, topicTags })
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // Check for valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -137,7 +131,7 @@ export async function deleteFlashcard(flashcardId: string): Promise<boolean> {
   try {
     console.log('deleteFlashcard called with ID:', flashcardId)
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // Check for valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -178,7 +172,7 @@ export async function getFlashcardsByTopic(topicTags: string[]): Promise<SavedFl
   try {
     console.log('getFlashcardsByTopic called with:', topicTags)
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // Check for valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -223,7 +217,7 @@ export async function updateFlashcardTopics(
   try {
     console.log('updateFlashcardTopics called with:', { flashcardId, topicTags })
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // Check for valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -272,7 +266,7 @@ export async function checkFlashcardExists(
   try {
     console.log('checkFlashcardExists called with:', { concept, definition })
     
-    const supabase = await getSupabaseClient()
+    const supabase = getSupabaseClient()
     
     // Check for valid session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
