@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MarkdownRenderer } from '@/lib/markdown-renderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, ChevronLeft, ChevronRight, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight, Bookmark, BookmarkCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type FlashcardSet, type Flashcard } from '@/lib/ai/lesson-schemas';
 
@@ -42,11 +42,18 @@ export function FlashcardComponent({
   const [performance, setPerformance] = useState<Record<string, 'got-it' | 'on-track' | 'unclear'>>(initialPerformance);
   const [savedCards, setSavedCards] = useState<Set<string>>(initialSavedCards);
   const [isCompleted, setIsCompleted] = useState(initialIsCompleted);
+  const [splitButton, setSplitButton] = useState<'got-it' | 'on-track' | 'unclear' | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const currentFlashcard = flashcardSet.flashcards[currentIndex];
   const isFlipped = flippedCards.has(currentFlashcard.id);
   const currentPerformance = performance[currentFlashcard.id];
   const isSaved = savedCards.has(currentFlashcard.id);
+
+  // Reset animation state when card changes
+  useEffect(() => {
+    resetAnimationState();
+  }, [currentIndex]);
 
 
 
@@ -71,22 +78,61 @@ export function FlashcardComponent({
   };
 
   const handlePerformance = (performanceLevel: 'got-it' | 'on-track' | 'unclear') => {
-    setPerformance(prev => ({
-      ...prev,
-      [currentFlashcard.id]: performanceLevel
-    }));
-
-    if (onAnswer) {
-      onAnswer(currentFlashcard.id, performanceLevel);
-    }
-
-    // Check if all cards have been reviewed
-    const newPerformance = { ...performance, [currentFlashcard.id]: performanceLevel };
-    const allReviewed = flashcardSet.flashcards.every(card => newPerformance.hasOwnProperty(card.id));
+    if (isAnimating) return;
     
-    if (allReviewed) {
-      setIsCompleted(true);
+    setIsAnimating(true);
+    setSplitButton(performanceLevel);
+  };
+
+  const handleSplitButtonAction = (action: 'save' | 'cancel', performanceLevel: 'got-it' | 'on-track' | 'unclear') => {
+    if (action === 'save') {
+      // Record performance
+      setPerformance(prev => ({
+        ...prev,
+        [currentFlashcard.id]: performanceLevel
+      }));
+
+      if (onAnswer) {
+        onAnswer(currentFlashcard.id, performanceLevel);
+      }
+
+      // Always save the flashcard
+      setSavedCards(prev => {
+        const newSet = new Set(prev);
+        newSet.add(currentFlashcard.id);
+        return newSet;
+      });
+
+      if (onSave) {
+        onSave(currentFlashcard.id, true);
+      }
+
+      // Check if all cards have been reviewed
+      const newPerformance = { ...performance, [currentFlashcard.id]: performanceLevel };
+      const allReviewed = flashcardSet.flashcards.every(card => newPerformance.hasOwnProperty(card.id));
+      
+      if (allReviewed) {
+        setIsCompleted(true);
+      }
+
+      // Navigate to next card if not the last one
+      if (currentIndex < flashcardSet.flashcards.length - 1) {
+        setTimeout(() => {
+          setCurrentIndex(currentIndex + 1);
+          resetAnimationState();
+        }, 200);
+      } else {
+        resetAnimationState();
+      }
+    } else {
+      // Just cancel and reset
+      resetAnimationState();
     }
+  };
+
+  const resetAnimationState = () => {
+    setSplitButton(null);
+    setIsAnimating(false);
   };
 
   const handleSave = () => {
@@ -136,31 +182,49 @@ export function FlashcardComponent({
   };
 
   const getPerformanceButtonStyles = (level: 'got-it' | 'on-track' | 'unclear') => {
-    const baseStyles = "flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all duration-200";
+    const baseStyles = "w-full text-xs font-medium py-2 px-3 rounded-md transition-all duration-200";
     const isSelected = currentPerformance === level;
+    const isDimmed = splitButton && splitButton !== level;
 
+    let colorStyles = "";
     switch (level) {
       case 'got-it':
-        return cn(
-          baseStyles,
-          isSelected 
-            ? "bg-green-500 text-white shadow-md" 
-            : "bg-green-100 text-green-700 hover:bg-green-200 border border-green-300"
-        );
+        colorStyles = isSelected 
+          ? "bg-green-500 text-white shadow-md" 
+          : "bg-green-100 text-green-700 hover:bg-green-200 border border-green-300";
+        break;
       case 'on-track':
-        return cn(
-          baseStyles,
-          isSelected 
-            ? "bg-orange-500 text-white shadow-md" 
-            : "bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300"
-        );
+        colorStyles = isSelected 
+          ? "bg-orange-500 text-white shadow-md" 
+          : "bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300";
+        break;
       case 'unclear':
-        return cn(
-          baseStyles,
-          isSelected 
-            ? "bg-red-500 text-white shadow-md" 
-            : "bg-red-100 text-red-700 hover:bg-red-200 border border-red-300"
-        );
+        colorStyles = isSelected 
+          ? "bg-red-500 text-white shadow-md" 
+          : "bg-red-100 text-red-700 hover:bg-red-200 border border-red-300";
+        break;
+    }
+
+    return cn(
+      baseStyles,
+      colorStyles,
+      isDimmed && "opacity-50 pointer-events-none"
+    );
+  };
+
+  const getSplitButtonStyles = (side: 'left' | 'right', level: 'got-it' | 'on-track' | 'unclear') => {
+    const baseStyles = "text-xs font-medium py-2 px-3 rounded-md transition-all duration-300 ease-in-out flex items-center justify-center";
+    
+    if (side === 'left') {
+      return cn(
+        baseStyles,
+        "bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 shadow-sm"
+      );
+    } else {
+      return cn(
+        baseStyles,
+        "gap-1 shadow-sm bg-green-100 text-green-700 border border-green-300 hover:bg-green-200"
+      );
     }
   };
 
@@ -298,27 +362,140 @@ export function FlashcardComponent({
               <span className="text-xs font-medium text-muted-foreground">How well do you know this?</span>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={() => handlePerformance('got-it')}
-                className={getPerformanceButtonStyles('got-it')}
-                variant="outline"
-              >
-                Got it!
-              </Button>
-              <Button
-                onClick={() => handlePerformance('on-track')}
-                className={getPerformanceButtonStyles('on-track')}
-                variant="outline"
-              >
-                On the right track
-              </Button>
-              <Button
-                onClick={() => handlePerformance('unclear')}
-                className={getPerformanceButtonStyles('unclear')}
-                variant="outline"
-              >
-                Still unclear
-              </Button>
+              {/* Got it button */}
+              <div className="flex-1 relative overflow-hidden">
+                {splitButton === 'got-it' ? (
+                  <div className="flex gap-1 h-full relative">
+                    <button
+                      onClick={() => handleSplitButtonAction('cancel', 'got-it')}
+                      className={cn(
+                        getSplitButtonStyles('left', 'got-it'), 
+                        "flex-1 h-full relative z-10"
+                      )}
+                      style={{
+                        animation: 'bladeSliceLeft 0.1s ease-out forwards'
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleSplitButtonAction('save', 'got-it')}
+                      className={cn(
+                        getSplitButtonStyles('right', 'got-it'), 
+                        "flex-[4] h-full relative z-10"
+                      )}
+                      style={{
+                        animation: 'bladeSliceRight 0.1s ease-out forwards'
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => handlePerformance('got-it')}
+                    className={cn(
+                      getPerformanceButtonStyles('got-it'),
+                      "transform transition-all duration-200 ease-in-out",
+                      isAnimating && !splitButton?.includes('got-it') && "scale-95 opacity-50"
+                    )}
+                    variant="outline"
+                    disabled={isAnimating}
+                  >
+                    Got it!
+                  </Button>
+                )}
+              </div>
+
+              {/* On the right track button */}
+              <div className="flex-1 relative overflow-hidden">
+                {splitButton === 'on-track' ? (
+                  <div className="flex gap-1 h-full relative">
+                    <button
+                      onClick={() => handleSplitButtonAction('cancel', 'on-track')}
+                      className={cn(
+                        getSplitButtonStyles('left', 'on-track'), 
+                        "flex-1 h-full relative z-10"
+                      )}
+                      style={{
+                        animation: 'bladeSliceLeft 0.1s ease-out forwards'
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleSplitButtonAction('save', 'on-track')}
+                      className={cn(
+                        getSplitButtonStyles('right', 'on-track'), 
+                        "flex-[4] h-full relative z-10"
+                      )}
+                      style={{
+                        animation: 'bladeSliceRight 0.1s ease-out forwards'
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => handlePerformance('on-track')}
+                    className={cn(
+                      getPerformanceButtonStyles('on-track'),
+                      "transform transition-all duration-200 ease-in-out",
+                      isAnimating && !splitButton?.includes('track') && "scale-95 opacity-50"
+                    )}
+                    variant="outline"
+                    disabled={isAnimating}
+                  >
+                    On the right track
+                  </Button>
+                )}
+              </div>
+
+              {/* Still unclear button */}
+              <div className="flex-1 relative overflow-hidden">
+                {splitButton === 'unclear' ? (
+                  <div className="flex gap-1 h-full relative">
+                    <button
+                      onClick={() => handleSplitButtonAction('cancel', 'unclear')}
+                      className={cn(
+                        getSplitButtonStyles('left', 'unclear'), 
+                        "flex-1 h-full relative z-10"
+                      )}
+                      style={{
+                        animation: 'bladeSliceLeft 0.1s ease-out forwards'
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleSplitButtonAction('save', 'unclear')}
+                      className={cn(
+                        getSplitButtonStyles('right', 'unclear'), 
+                        "flex-[4] h-full relative z-10"
+                      )}
+                      style={{
+                        animation: 'bladeSliceRight 0.1s ease-out forwards'
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => handlePerformance('unclear')}
+                    className={cn(
+                      getPerformanceButtonStyles('unclear'),
+                      "transform transition-all duration-200 ease-in-out",
+                      isAnimating && !splitButton?.includes('unclear') && "scale-95 opacity-50"
+                    )}
+                    variant="outline"
+                    disabled={isAnimating}
+                  >
+                    Still unclear
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -345,6 +522,50 @@ export function FlashcardComponent({
         }
         .rotate-y-180 {
           transform: rotateY(180deg);
+        }
+        
+        @keyframes slideInBounceLeft {
+          0% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slideInBounceRight {
+          0% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes bladeSliceLeft {
+          0% {
+            opacity: 0;
+            transform: translateX(50%);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes bladeSliceRight {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
       `}</style>
     </Card>
