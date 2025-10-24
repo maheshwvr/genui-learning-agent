@@ -21,6 +21,7 @@ import { FlashcardComponent } from '@/components/ui/flashcard-component'
 import { FlashcardLoading } from '@/components/ui/flashcard-loading'
 import { type MCQ, type TF, type FlashcardSet, type MCQOption } from '@/lib/ai/lesson-schemas'
 import { type ChatMessage } from '@/lib/types'
+import { saveFlashcard, deleteFlashcard } from '@/lib/supabase/flashcards'
 
 interface ChatProps {
   messages: Message[]
@@ -31,6 +32,9 @@ interface ChatProps {
   stop?: () => void
   append?: (message: { role: 'user' | 'assistant'; content: string }) => void
   updateMessage?: (messageId: string, updates: Partial<Message>) => void
+  lessonId?: string
+  courseId?: string | null
+  topicSelection?: string[]
 }
 
 // Type definitions for tool invocations
@@ -644,7 +648,10 @@ export function Chat({
   isGenerating = false,
   stop,
   append,
-  updateMessage
+  updateMessage,
+  lessonId,
+  courseId,
+  topicSelection
 }: ChatProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { containerRef, endRef, scrollToBottom } = useScrollToBottom({
@@ -1020,7 +1027,7 @@ export function Chat({
                                     }
                                   }
                                 }}
-                                onSave={(flashcardId, shouldSave) => {
+                                onSave={async (flashcardId, shouldSave) => {
                                   // Handle individual flashcard saving to personal collection
                                   if (updateMessage) {
                                     const existingAssessment = getExistingAssessmentResults(message);
@@ -1051,8 +1058,42 @@ export function Chat({
                                     } as Partial<Message>);
                                   }
                                   
-                                  // TODO: Actually save to database via flashcards.ts functions
-                                  // This would involve calling saveFlashcard() function
+                                  // Save to database
+                                  try {
+                                    // Find the specific flashcard from the flashcard set
+                                    const flashcard = flashcardsData.flashcards.find(f => f.id === flashcardId);
+                                    if (!flashcard) {
+                                      console.error('Flashcard not found:', flashcardId);
+                                      return;
+                                    }
+
+                                    if (shouldSave) {
+                                      // Save to database
+                                      console.log('Saving flashcard to database:', {
+                                        flashcard,
+                                        courseId,
+                                        topicSelection,
+                                        lessonId
+                                      });
+                                      
+                                      await saveFlashcard(
+                                        flashcard,
+                                        courseId || undefined,
+                                        topicSelection || [],
+                                        lessonId || undefined
+                                      );
+                                      
+                                      console.log('Flashcard saved successfully');
+                                    } else {
+                                      // For unsaving, we would need to find the saved flashcard by matching content
+                                      // This is more complex as we need to query the database to find the saved flashcard ID
+                                      // For now, we'll log this case - full implementation would require additional DB query
+                                      console.log('Unsaving flashcard - would need to implement deletion by content matching');
+                                    }
+                                  } catch (error) {
+                                    console.error('Failed to save flashcard:', error);
+                                    // Could add toast notification here in the future
+                                  }
                                 }}
                                 className="my-2"
                               />

@@ -233,7 +233,7 @@ export function FlashcardComponent({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4 text-primary" />
+            <Brain className="w-4 h-4 text-muted-foreground" />
             <CardTitle className="text-base">Quick Review: Flashcards</CardTitle>
           </div>
           <div className="flex items-center gap-2">
@@ -262,7 +262,8 @@ export function FlashcardComponent({
         <div className="relative">
           <div 
             className={cn(
-              "relative w-full h-40 cursor-pointer rounded-lg border-2 border-primary/20 shadow-md transition-all duration-500 preserve-3d",
+              "relative w-full h-40 cursor-pointer rounded-lg border-2 border-border shadow-md transition-all duration-500 preserve-3d",
+              "hover:border-purple-300",
               isFlipped && "rotate-y-180"
             )}
             onClick={handleFlip}
@@ -270,11 +271,11 @@ export function FlashcardComponent({
           >
             {/* Front side - Concept */}
             <div className={cn(
-              "absolute inset-0 w-full h-full backface-hidden bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-center p-4",
-              "hover:bg-primary/10 transition-colors duration-200"
+              "absolute inset-0 w-full h-full backface-hidden bg-background rounded-lg border border-border flex items-center justify-center p-4",
+              "hover:bg-purple-50/30 transition-colors duration-200"
             )}>
               <div className="text-center">
-                <div className="text-xs text-primary/60 font-medium mb-2">CONCEPT</div>
+                <div className="text-xs text-muted-foreground font-medium mb-2">CONCEPT</div>
                 <div className="text-base font-semibold text-foreground">
                   <MarkdownRenderer variant="lesson">
                     {currentFlashcard.concept}
@@ -336,7 +337,7 @@ export function FlashcardComponent({
                 size="sm"
                 className={cn(
                   "gap-1 text-xs",
-                  isSaved ? "bg-blue-50 border-blue-200 text-blue-700" : ""
+                  isSaved ? "bg-purple-50 border-purple-200 text-purple-700" : ""
                 )}
               >
                 {isSaved ? (
@@ -502,11 +503,11 @@ export function FlashcardComponent({
 
         {/* Completion summary */}
         {isCompleted && (
-          <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-            <div className="text-sm font-medium text-blue-800 mb-1">
+          <div className="mt-3 p-3 rounded-lg bg-purple-50 border border-purple-200">
+            <div className="text-sm font-medium text-purple-800 mb-1">
               Flashcard Review Complete!
             </div>
-            <div className="text-xs text-blue-600">
+            <div className="text-xs text-purple-600">
               You've reviewed all {flashcardSet.flashcards.length} flashcards from "{flashcardSet.topic}".
             </div>
           </div>

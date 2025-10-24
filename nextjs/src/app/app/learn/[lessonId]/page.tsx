@@ -470,6 +470,9 @@ export default function LessonPage() {
               // Trigger save after a brief delay to allow state to update
               setTimeout(() => saveMessagesToLesson(), 100);
             }}
+            lessonId={lessonId}
+            courseId={lesson?.course_id}
+            topicSelection={lesson?.topic_selection}
           />
         </div>
       </div>
