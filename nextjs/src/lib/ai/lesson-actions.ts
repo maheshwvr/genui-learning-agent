@@ -180,6 +180,26 @@ Generate flashcards that will genuinely help the user retain and recall the most
 
 // Helper function to detect uncertainty in user messages
 export async function detectUncertainty(message: string): Promise<boolean> {
+  // Don't trigger assessments on basic greetings or focus questions
+  const greetingPatterns = [
+    'hello',
+    'hi',
+    'what would you like to focus on',
+    'what should we focus on',
+    'what do you want to learn',
+    'what would i like to focus on',
+    'which topic would you like to focus on',
+    'covering these topics',
+    'focus on first'
+  ];
+
+  const lowerMessage = message.toLowerCase();
+  
+  // Skip assessment if it's a greeting or focus question
+  if (greetingPatterns.some(pattern => lowerMessage.includes(pattern))) {
+    return false;
+  }
+
   const uncertaintyIndicators = [
     'i don\'t understand',
     'i\'m confused',
@@ -198,7 +218,6 @@ export async function detectUncertainty(message: string): Promise<boolean> {
     'why does'
   ];
 
-  const lowerMessage = message.toLowerCase();
   return uncertaintyIndicators.some(indicator => lowerMessage.includes(indicator));
 }
 

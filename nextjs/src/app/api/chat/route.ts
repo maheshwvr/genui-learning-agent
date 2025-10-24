@@ -160,7 +160,7 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
             materialsContext += `- ${material.name} (${material.mimeType})${sizeInfo}\n`;
           });
           
-          systemPrompt += materialsContext + '\n\nUse these materials to provide contextual, relevant learning guidance. Start each conversation fresh without assuming prior context from previous sessions.';
+          systemPrompt += materialsContext + '\n\nUse these materials to provide contextual, relevant learning guidance. Start each conversation fresh without assuming prior context from previous sessions. When users are presented with topic options, acknowledge their choice warmly and briefly before diving into the selected topic. Keep initial responses concise and focused on what the user specifically wants to learn.';
         }
       }
     } catch (error) {
@@ -171,10 +171,28 @@ async function streamFreshChat(messages: Message[], lessonId?: string) {
 
   // Add default greeting if no messages
   if (processedMessages.length === 0) {
+    let greetingContent = "Hello! What would you like to focus on in this lesson?";
+    
+    // If we have materials and topic selection, list the available topics
+    if (shouldLoadMaterials) {
+      try {
+        const lessonManager = await createServerLessonManager();
+        const lesson = await lessonManager.getLesson(lessonId);
+        
+        if (lesson && lesson.course_id && Array.isArray(lesson.topic_selection) && lesson.topic_selection.length > 0) {
+          const topicsList = lesson.topic_selection.map((topic, index) => `${index + 1}. ${topic}`).join('\n');
+          greetingContent = `Hello! I have materials covering these topics:\n\n${topicsList}\n\nWhich topic would you like to focus on first?`;
+        }
+      } catch (error) {
+        console.error('Error loading lesson for greeting:', error);
+        // Fall back to default greeting
+      }
+    }
+    
     processedMessages = [
       {
         role: 'user' as const,
-        content: "Hello! I'm ready to start learning."
+        content: greetingContent
       }
     ];
   }

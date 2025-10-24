@@ -599,6 +599,43 @@ function getExistingAssessmentResults(message: Message): ChatMessage['assessment
   return null;
 }
 
+// Helper function to check if there are incomplete flashcard assessments
+function hasIncompleteFlashcardAssessments(messages: Message[]): boolean {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    
+    // Only check assistant messages that might contain flashcards
+    if (message.role !== 'assistant') continue;
+    
+    // Check if this message has flashcard data
+    const flashcardsData = parseFlashcardsFromContent(message.content);
+    if (!flashcardsData) continue;
+    
+    // Check if this message has an assessment
+    const assessment = getExistingAssessmentResults(message);
+    if (!assessment || assessment.type !== 'flashcards') {
+      // No assessment exists - definitely incomplete
+      return true;
+    }
+    
+    // Check if the assessment is complete
+    const flashcardPerformance = assessment.results?.flashcardPerformance || [];
+    const totalFlashcards = flashcardsData.flashcards.length;
+    const completedFlashcards = flashcardPerformance.length;
+    
+    if (completedFlashcards < totalFlashcards) {
+      // Not all flashcards have been reviewed
+      return true;
+    }
+    
+    // If we found a complete flashcard assessment, we can stop checking older messages
+    // since we only care about the most recent incomplete ones
+    break;
+  }
+  
+  return false;
+}
+
 export function Chat({
   messages,
   input,
@@ -665,13 +702,18 @@ export function Chat({
     }
   }, [messages.length, scrollToBottom])
 
-  // Auto-focus the input after each assistant message
+  // Auto-focus the input after each assistant message (unless there are incomplete flashcard assessments)
   useEffect(() => {
     if (!isGenerating && inputRef.current) {
-      const timeoutId = setTimeout(() => {
-        inputRef.current?.focus()
-      }, 100)
-      return () => clearTimeout(timeoutId)
+      // Check if there are incomplete flashcard assessments
+      const hasIncompleteFlashcards = hasIncompleteFlashcardAssessments(messages);
+      
+      if (!hasIncompleteFlashcards) {
+        const timeoutId = setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+        return () => clearTimeout(timeoutId)
+      }
     }
   }, [messages, isGenerating])
 

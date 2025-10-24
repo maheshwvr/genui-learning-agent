@@ -85,7 +85,7 @@ function AnimatedTopicRow({ topic, isSelected, onToggle }: AnimatedTopicRowProps
   return (
     <div
       ref={rowRef}
-      className={`relative flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer hover:bg-accent hover:border-accent overflow-hidden ${
+      className={`relative flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer hover:bg-accent overflow-hidden ${
         isSelected ? 'bg-accent border-accent' : 'border-border'
       }`}
       onMouseMove={handleMouseMove}
