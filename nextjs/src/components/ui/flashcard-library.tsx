@@ -195,7 +195,7 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
         <CardContent className="p-6">
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Brain className="h-12 w-12 text-primary mx-auto mb-4" />
               <p className="text-muted-foreground">Please sign in to view your flashcard library.</p>
             </div>
           </div>
@@ -210,9 +210,6 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Brain className="h-6 w-6 text-primary" />
-              </div>
               <div>
                 <CardTitle className="text-xl">Your Flashcard Library</CardTitle>
                 <CardDescription>
@@ -285,7 +282,7 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
           {/* Empty State */}
           {totalFlashcards === 0 && !loading && (
             <div className="text-center py-12">
-              <Brain className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <Brain className="h-12 w-12 mx-auto text-primary mb-4" />
               <h3 className="text-lg font-semibold mb-2">No flashcards yet</h3>
               <p className="text-muted-foreground mb-4">
                 Start saving flashcards from your chat lessons to build your personal study collection.
@@ -315,17 +312,19 @@ export function FlashcardLibrary({ className = '' }: FlashcardLibraryProps) {
           )}
 
           {/* Course Groups */}
-          {Object.entries(groupedFlashcards).map(([courseId, group]) => (
-            <CourseFlashcardGroup
-              key={courseId}
-              courseId={courseId === 'no-course' ? null : courseId}
-              courseName={group.courseName}
-              flashcards={group.flashcards}
-              onFlashcardDelete={handleFlashcardDelete}
-              onStudyMode={handleStudyMode}
-              deleting={deleting}
-            />
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {Object.entries(groupedFlashcards).map(([courseId, group]) => (
+              <CourseFlashcardGroup
+                key={courseId}
+                courseId={courseId === 'no-course' ? null : courseId}
+                courseName={group.courseName}
+                flashcards={group.flashcards}
+                onFlashcardDelete={handleFlashcardDelete}
+                onStudyMode={handleStudyMode}
+                deleting={deleting}
+              />
+            ))}
+          </div>
         </CardContent>
       </Card>
 

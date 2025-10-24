@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Play, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Play, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SavedFlashcard } from '@/lib/supabase/flashcards';
 import { MarkdownRenderer } from '@/lib/markdown-renderer';
@@ -27,7 +27,6 @@ export function CourseFlashcardGroup({
   deleting = new Set(),
   className = ''
 }: CourseFlashcardGroupProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -50,8 +49,9 @@ export function CourseFlashcardGroup({
     setIsHovered(false);
   };
 
-  const previewFlashcards = flashcards.slice(0, 3);
-  const hasMoreFlashcards = flashcards.length > 3;
+  // Get up to 4 flashcards for the stack
+  const stackFlashcards = flashcards.slice(0, 4);
+  const totalCards = flashcards.length;
 
   return (
     <Card 
@@ -77,133 +77,107 @@ export function CourseFlashcardGroup({
 
       <CardHeader className="relative z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <BookOpen className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">{courseName}</CardTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                  {flashcards.length} flashcard{flashcards.length !== 1 ? 's' : ''}
+          <div>
+            <CardTitle className="text-lg">{courseName}</CardTitle>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                {totalCards} flashcard{totalCards !== 1 ? 's' : ''}
+              </span>
+              {courseId && (
+                <span className="inline-flex items-center rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground">
+                  Course
                 </span>
-                {courseId && (
-                  <span className="inline-flex items-center rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground">
-                    Course
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => onStudyMode(flashcards)}
-              className="gap-2"
-              size="sm"
-            >
-              <Play className="h-4 w-4" />
-              Study All
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-2"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <Button
+            onClick={() => onStudyMode(flashcards)}
+            className="gap-2"
+            size="sm"
+          >
+            <Play className="h-4 w-4" />
+            Study All
+          </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="relative z-10 space-y-4">
-        {/* Preview flashcards (always shown) */}
-        <div className="space-y-3">
-          {previewFlashcards.map((flashcard) => (
-            <div
-              key={flashcard.id}
-              className="flex items-start justify-between p-3 rounded-lg bg-muted/50 border transition-colors hover:bg-muted/80"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm mb-1 line-clamp-1">
-                  <MarkdownRenderer className="inline">{flashcard.concept}</MarkdownRenderer>
-                </div>
-                <div className="text-xs text-muted-foreground line-clamp-1">
-                  <MarkdownRenderer className="inline">{flashcard.definition}</MarkdownRenderer>
-                </div>
-                {flashcard.topic && (
-                  <span className="inline-flex items-center rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground mt-2">
-                    {flashcard.topic}
-                  </span>
-                )}
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onFlashcardDelete(flashcard.id)}
-                disabled={deleting.has(flashcard.id)}
-                className="ml-2 p-1 h-auto text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-
-        {/* Show more indicator */}
-        {hasMoreFlashcards && !isExpanded && (
-          <div className="text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(true)}
-              className="text-xs text-muted-foreground"
-            >
-              +{flashcards.length - 3} more flashcards
-            </Button>
-          </div>
-        )}
-
-        {/* Expanded flashcards */}
-        {isExpanded && hasMoreFlashcards && (
-          <div className="space-y-3 border-t pt-4">
-            {flashcards.slice(3).map((flashcard) => (
+      <CardContent className="relative z-10 p-2">
+        {/* Stacked Flashcard Design */}
+        <div className="relative h-64">
+          {stackFlashcards.map((flashcard, index) => {
+            const isTopCard = index === 0;
+            const zIndex = stackFlashcards.length - index;
+            const translateY = index * 6; // 6px offset per layer
+            const scale = 1 - (index * 0.02); // Slightly smaller for cards behind
+            const opacity = isTopCard ? 1 : 0.85;
+            
+            return (
               <div
                 key={flashcard.id}
-                className="flex items-start justify-between p-3 rounded-lg bg-muted/50 border transition-colors hover:bg-muted/80"
+                className={cn(
+                  "absolute left-1 right-1 rounded-lg border bg-background transition-all duration-200",
+                  isTopCard ? "shadow-lg border-2 p-4" : "shadow-sm p-3"
+                )}
+                style={{
+                  transform: `translateY(${translateY}px) scale(${scale})`,
+                  zIndex,
+                  opacity
+                }}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm mb-1 line-clamp-1">
-                    <MarkdownRenderer className="inline">{flashcard.concept}</MarkdownRenderer>
+                <div className="flex flex-col justify-between h-full">
+                  <div>
+                    <div className="font-semibold text-sm mb-2 line-clamp-3">
+                      <MarkdownRenderer className="inline">{flashcard.concept}</MarkdownRenderer>
+                    </div>
+                    <div className="text-xs text-muted-foreground line-clamp-4">
+                      <MarkdownRenderer className="inline">{flashcard.definition}</MarkdownRenderer>
+                    </div>
+                    {flashcard.topic && (
+                      <span className="inline-flex items-center rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground mt-2">
+                        {flashcard.topic}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground line-clamp-1">
-                    <MarkdownRenderer className="inline">{flashcard.definition}</MarkdownRenderer>
-                  </div>
-                  {flashcard.topic && (
-                    <span className="inline-flex items-center rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground mt-2">
-                      {flashcard.topic}
-                    </span>
+                  
+                  {isTopCard && (
+                    <div className="flex items-center justify-end mt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onFlashcardDelete(flashcard.id)}
+                        disabled={deleting.has(flashcard.id)}
+                        className="ml-2 p-1 h-auto text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                 </div>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onFlashcardDelete(flashcard.id)}
-                  disabled={deleting.has(flashcard.id)}
-                  className="ml-2 p-1 h-auto text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
               </div>
-            ))}
+            );
+          })}
+
+          {/* placeholders to indicate capacity up to 4 when fewer cards exist */}
+          {stackFlashcards.length < 4 && Array.from({ length: 4 - stackFlashcards.length }).map((_, i) => {
+            const placeholderIndex = stackFlashcards.length + i;
+            const translateY = placeholderIndex * 6;
+            return (
+              <div
+                key={`placeholder-${i}`}
+                className="absolute left-2 right-2 rounded-lg border border-dashed border-muted bg-muted/10 h-8"
+                style={{ transform: `translateY(${translateY}px)` }}
+              />
+            );
+          })}
+        </div>
+        
+        {/* Stack indicator for more than 4 cards */}
+        {totalCards > 4 && (
+          <div className="text-center mt-4">
+            <span className="text-xs text-muted-foreground">
+              +{totalCards - 4} more cards
+            </span>
           </div>
         )}
 
