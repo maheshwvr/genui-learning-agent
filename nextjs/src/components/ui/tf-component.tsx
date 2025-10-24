@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { MarkdownRenderer } from '@/lib/markdown-renderer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, HelpCircle } from 'lucide-react';
+import { CheckCircle, XCircle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type TF, type TFStatement } from '@/lib/ai/lesson-schemas';
 
@@ -29,6 +29,7 @@ export function TFComponent({
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, boolean>>(initialSelectedAnswers);
   const [isSubmitted, setIsSubmitted] = useState(initialIsSubmitted);
   const [showExplanation, setShowExplanation] = useState(initialShowExplanation);
+  const [isExplanationExpanded, setIsExplanationExpanded] = useState(false);
 
   // Check if all statements have been answered
   const allAnswered = tf.statements.every(statement => 
@@ -260,30 +261,50 @@ export function TFComponent({
         
         {showExplanation && (
           <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
-            <div className="flex items-center gap-2 mb-2">
-              {(() => {
-                const score = getOverallScore();
-                const isFullScore = score.correct === score.total;
-                return (
-                  <>
-                    {isFullScore ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-orange-600" />
-                    )}
-                    <span className="font-semibold text-sm">
-                      Score: {score.correct}/{score.total}
-                      {isFullScore ? ' - Perfect!' : ''}
-                    </span>
-                  </>
-                );
-              })()}
-            </div>
-            <div className="text-xs text-muted-foreground leading-relaxed">
-              <MarkdownRenderer variant="lesson">
-                {tf.overallExplanation}
-              </MarkdownRenderer>
-            </div>
+            <button 
+              type="button"
+              className="w-full flex items-center justify-between cursor-pointer focus:outline-none"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsExplanationExpanded(!isExplanationExpanded);
+                return false;
+              }}
+            >
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const score = getOverallScore();
+                  const isFullScore = score.correct === score.total;
+                  return (
+                    <>
+                      {isFullScore ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-orange-600" />
+                      )}
+                      <span className="font-semibold text-sm">
+                        Score: {score.correct}/{score.total}
+                        {isFullScore ? ' - Perfect!' : ''}
+                      </span>
+                    </>
+                  );
+                })()}
+              </div>
+              {isExplanationExpanded ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {isExplanationExpanded && (
+              <div className="mt-2 pt-2 border-t border-border/50">
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <MarkdownRenderer variant="lesson">
+                    {tf.overallExplanation}
+                  </MarkdownRenderer>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

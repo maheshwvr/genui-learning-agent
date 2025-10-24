@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { MarkdownRenderer } from '@/lib/markdown-renderer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, HelpCircle } from 'lucide-react';
+import { CheckCircle, XCircle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type MCQ, type MCQOption } from '@/lib/ai/lesson-schemas';
 
@@ -29,6 +29,7 @@ export function MCQComponent({
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(initialSelectedOptionId);
   const [isSubmitted, setIsSubmitted] = useState(initialIsSubmitted);
   const [showExplanation, setShowExplanation] = useState(initialShowExplanation);
+  const [isExplanationExpanded, setIsExplanationExpanded] = useState(false);
 
   const selectedOption = selectedOptionId 
     ? mcq.options.find(option => option.id === selectedOptionId)
@@ -194,26 +195,46 @@ export function MCQComponent({
         
         {showExplanation && (
           <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
-            <div className="flex items-center gap-2 mb-1">
-              {selectedOption?.isCorrect ? (
-                <CheckCircle className="w-4 h-4 text-green-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-red-600" />
-              )}
-              <span className="font-semibold text-sm">
-                {selectedOption?.isCorrect ? 'Correct!' : 'Incorrect'}
-              </span>
-              {!selectedOption?.isCorrect && correctOption && (
-                <span className="text-xs text-muted-foreground">
-                  (Correct answer: {correctOption.id.toUpperCase()})
+            <button 
+              type="button"
+              className="w-full flex items-center justify-between cursor-pointer focus:outline-none"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsExplanationExpanded(!isExplanationExpanded);
+                return false;
+              }}
+            >
+              <div className="flex items-center gap-2">
+                {selectedOption?.isCorrect ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-600" />
+                )}
+                <span className="font-semibold text-sm">
+                  {selectedOption?.isCorrect ? 'Correct!' : 'Incorrect'}
                 </span>
+                {!selectedOption?.isCorrect && correctOption && (
+                  <span className="text-xs text-muted-foreground">
+                    (Correct answer: {correctOption.id.toUpperCase()})
+                  </span>
+                )}
+              </div>
+              {isExplanationExpanded ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
               )}
-            </div>
-            <div className="text-xs text-muted-foreground leading-relaxed">
-              <MarkdownRenderer variant="lesson">
-                {mcq.explanation}
-              </MarkdownRenderer>
-            </div>
+            </button>
+            {isExplanationExpanded && (
+              <div className="mt-2 pt-2 border-t border-border/50">
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <MarkdownRenderer variant="lesson">
+                    {mcq.explanation}
+                  </MarkdownRenderer>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

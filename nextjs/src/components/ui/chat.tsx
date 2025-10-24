@@ -650,7 +650,8 @@ export function Chat({
   const { containerRef, endRef, scrollToBottom } = useScrollToBottom({
     behavior: 'smooth',
     block: 'nearest',
-    debounceMs: 100
+    debounceMs: 100,
+    isStreaming: isGenerating
   })
 
   // State to track if we're currently generating an assessment (MCQ or TF)
@@ -695,9 +696,10 @@ export function Chat({
     }
   }, [])
 
-  // Scroll when new messages are added or content changes
+  // Scroll to bottom on initial load when first messages appear
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && messages.length <= 2) {
+      // Only auto-scroll for initial messages (first user message + first assistant response)
       scrollToBottom()
     }
   }, [messages.length, scrollToBottom])
@@ -820,11 +822,11 @@ export function Chat({
                             }`}
                           >
                             {message.role === 'user' ? (
-                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              <p className="text-base whitespace-pre-wrap">{message.content}</p>
                             ) : (
                               <MarkdownRenderer 
                                 variant="chat"
-                                className="prose prose-sm max-w-none"
+                                className="prose prose-base max-w-none"
                               >
                                 {cleanedContent}
                               </MarkdownRenderer>
@@ -844,7 +846,7 @@ export function Chat({
                         const mcqResults = existingResults?.type === 'mcq' ? existingResults.results : null;
                         
                         return (
-                          <div className="flex justify-start">
+                          <div className="flex gap-3 justify-start">
                             <div className="w-8" /> {/* Spacer for alignment */}
                             <div className="max-w-[80%]">
                               <MCQComponent 
@@ -898,7 +900,7 @@ export function Chat({
                         const tfResults = existingResults?.type === 'tf' ? existingResults.results : null;
                         
                         return (
-                          <div className="flex justify-start">
+                          <div className="flex gap-3 justify-start">
                             <div className="w-8" /> {/* Spacer for alignment */}
                             <div className="max-w-[80%]">
                               <TFComponent 
@@ -961,7 +963,7 @@ export function Chat({
                         const flashcardsResults = existingResults?.type === 'flashcards' ? existingResults.results : null;
                         
                         return (
-                          <div className="flex justify-start">
+                          <div className="flex gap-3 justify-start">
                             <div className="w-8" /> {/* Spacer for alignment */}
                             <div className="max-w-[80%]">
                               <FlashcardComponent 
