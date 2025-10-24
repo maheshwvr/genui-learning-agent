@@ -8,6 +8,7 @@ interface UseScrollToBottomOptions {
   inline?: ScrollLogicalPosition;
   threshold?: number;
   debounceMs?: number;
+  isStreaming?: boolean;
 }
 
 export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
@@ -16,7 +17,8 @@ export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
     block = 'nearest',
     inline = 'nearest',
     threshold = 100,
-    debounceMs = 100
+    debounceMs = 100,
+    isStreaming = false
   } = options;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -60,12 +62,12 @@ export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
     return scrollHeight - scrollTop - clientHeight < threshold;
   }, [threshold]);
 
-  // Auto-scroll only if user is near bottom
+  // Auto-scroll only if user is near bottom AND currently streaming
   const autoScrollToBottom = useCallback(() => {
-    if (isNearBottom()) {
+    if (isNearBottom() && isStreaming) {
       scrollToBottom();
     }
-  }, [isNearBottom, scrollToBottom]);
+  }, [isNearBottom, scrollToBottom, isStreaming]);
 
   // Set up MutationObserver for dynamic content changes
   useEffect(() => {
@@ -87,23 +89,25 @@ export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
           return;
         }
 
-        // Check for added nodes (new messages, MCQ components, etc.)
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          shouldScroll = true;
-        }
-        
-        // Check for text content changes (streaming messages)
-        if (mutation.type === 'characterData') {
-          shouldScroll = true;
-        }
-        
-        // Check for attribute changes that might affect layout
-        if (mutation.type === 'attributes') {
-          const attributeName = mutation.attributeName;
-          if (attributeName === 'class' || attributeName === 'style') {
+        // During streaming, scroll for text content changes and relevant node additions
+        if (isStreaming) {
+          if (mutation.type === 'characterData') {
             shouldScroll = true;
           }
+          // Also allow childList changes during streaming for new text nodes
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            // Check if added nodes contain text content (not just components)
+            const hasTextContent = Array.from(mutation.addedNodes).some(node => 
+              node.nodeType === Node.TEXT_NODE || 
+              (node.nodeType === Node.ELEMENT_NODE && (node as Element).textContent?.trim())
+            );
+            if (hasTextContent) {
+              shouldScroll = true;
+            }
+          }
         }
+        // When not streaming, don't auto-scroll for any changes
+        // This prevents scrolling when MCQ/TF components are added or updated
       });
 
       if (shouldScroll) {
@@ -111,14 +115,16 @@ export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
       }
     });
 
-    // Start observing
-    observerRef.current.observe(container, {
-      childList: true,
+    // Configure observer based on streaming state
+    const observerConfig = {
+      childList: true, // Always watch for new nodes
       subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['class', 'style']
-    });
+      characterData: isStreaming, // Only watch text changes during streaming
+      attributes: false // Never watch attribute changes for auto-scroll
+    };
+
+    // Start observing
+    observerRef.current.observe(container, observerConfig);
 
     return () => {
       if (observerRef.current) {
@@ -128,7 +134,7 @@ export function useScrollToBottom(options: UseScrollToBottomOptions = {}) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [autoScrollToBottom]);
+  }, [autoScrollToBottom, isStreaming]);
 
   // Manual scroll to bottom (for initial load or force scroll)
   const scrollToBottomManual = useCallback(() => {
