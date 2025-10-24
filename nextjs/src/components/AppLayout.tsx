@@ -7,15 +7,17 @@ import {
     X,
     ChevronDown,
     LogOut,
-    Key, FolderInput, BookOpen, History,
+    Key, FolderInput, BookOpen, History, HandHeart, Info,
 } from 'lucide-react';
 import { useGlobal, getInitials, getDisplayName } from "@/lib/context/GlobalContext";
 import { createSPASassClient } from "@/lib/supabase/client";
 import AnimatedNavButton from "./AnimatedNavButton";
+import { OnboardingModal } from "./ui/onboarding-modal";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isUserDropdownOpen, setUserDropdownOpen] = useState(false);
+    const [isOnboardingOpen, setOnboardingOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
 
@@ -90,12 +92,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
                 <div className="sticky top-0 z-10 flex items-center justify-between h-16 bg-white shadow-sm px-4">
-                    <button
-                        onClick={toggleSidebar}
-                        className="lg:hidden text-gray-500 hover:text-gray-700"
-                    >
-                        <Menu className="h-6 w-6"/>
-                    </button>
+                    <div className="flex items-center space-x-4">
+                        <button
+                            onClick={toggleSidebar}
+                            className="lg:hidden text-gray-500 hover:text-gray-700"
+                        >
+                            <Menu className="h-6 w-6"/>
+                        </button>
+                        
+                        {/* Onboarding Button */}
+                        <button
+                            onClick={() => setOnboardingOpen(true)}
+                            className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+                            title="How to use Itergora"
+                        >
+                            <Info className="h-5 w-5" strokeWidth={1.5} />
+                        </button>
+                        
+                        {/* YouForm Button - visible on all screen sizes */}
+                        <a
+                            href="https://app.youform.com/forms/st0ad3bj"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Leave Feedback"
+                            className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+                        >
+                            <HandHeart className="h-5 w-5" strokeWidth={1.5} />
+                        </a>
+                    </div>
 
                     <div className="relative ml-auto">
                         <button
@@ -155,6 +179,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {children}
                 </main>
             </div>
+
+            {/* Onboarding Modal */}
+            <OnboardingModal 
+                isOpen={isOnboardingOpen} 
+                onClose={() => setOnboardingOpen(false)} 
+            />
         </div>
     );
 }
