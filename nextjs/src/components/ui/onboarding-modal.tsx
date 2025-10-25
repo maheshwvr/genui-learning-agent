@@ -66,8 +66,9 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors duration-200 bg-black/20 rounded-full p-2 backdrop-blur-sm"
+              className="absolute top-4 right-4 z-10 transition-colors duration-200 bg-black/20 rounded-full p-2 backdrop-blur-sm hover:bg-black/30"
               title="Close onboarding"
+              style={{ color: '#d8b4fe' }}
             >
               <X className="h-6 w-6" />
               <span className="sr-only">Close</span>
@@ -75,10 +76,10 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
 
             {/* Welcome text */}
             <div className="text-center mb-8 sm:mb-12">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4" style={{ color: '#e9d5ff' }}>
                 Welcome to Itergora
               </h1>
-              <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto">
+              <p className="text-lg sm:text-xl max-w-2xl mx-auto" style={{ color: '#d8b4fe' }}>
                 Transform your study materials into interactive learning experiences
               </p>
             </div>
@@ -103,14 +104,14 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
                   >
                     {/* Icon */}
                     <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <IconComponent className="h-8 w-8 sm:h-10 sm:w-10 text-white" strokeWidth={1.5} />
+                      <IconComponent className="h-8 w-8 sm:h-10 sm:w-10" strokeWidth={1.5} style={{ color: '#f3e8ff' }} />
                     </div>
 
                     {/* Content */}
-                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
+                    <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" style={{ color: '#e9d5ff' }}>
                       {step.title}
                     </h3>
-                    <p className="text-white/90 text-sm sm:text-base leading-relaxed">
+                    <p className="text-sm sm:text-base leading-relaxed" style={{ color: '#d8b4fe' }}>
                       {step.description}
                     </p>
                   </div>

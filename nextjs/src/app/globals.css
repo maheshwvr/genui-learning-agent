@@ -415,27 +415,27 @@
 
 /* Onboarding Modal Glassmorphism Styles */
 .onboarding-backdrop {
-  background: rgba(124, 58, 237, 0.4); /* Purple-600 with opacity */
+  background: rgba(91, 33, 182, 0.6); /* Darker purple with higher opacity */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 /* Main glassmorphism container card */
 .onboarding-main-card {
-  background: rgba(139, 69, 219, 0.3); /* Purple-500 with medium opacity */
+  background: rgba(109, 40, 217, 0.35); /* Slightly darker purple with more opacity */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(167, 139, 250, 0.3); /* Purple-300 border */
-  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(167, 139, 250, 0.4); /* Slightly more visible border */
+  box-shadow: 0 8px 32px rgba(91, 33, 182, 0.3);
 }
 
-/* Lighter step cards within the main card */
+/* Darker step cards within the main card for better contrast */
 .onboarding-step-card {
-  background: rgba(196, 181, 253, 0.15); /* Purple-300 with low opacity */
+  background: rgba(88, 28, 135, 0.25); /* Much darker purple with higher opacity */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(196, 181, 253, 0.2); /* Purple-300 border with low opacity */
-  box-shadow: 0 4px 16px rgba(139, 69, 219, 0.1);
+  border: 1px solid rgba(147, 51, 234, 0.3); /* Darker border for definition */
+  box-shadow: 0 4px 16px rgba(88, 28, 135, 0.2);
 }
 
 /* Staged Animation Keyframes */
@@ -479,4 +479,24 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+}
+
+/* Onboarding Button Pulse Animation */
+@keyframes onboarding-pulse {
+  0% {
+    background-color: theme('colors.primary.100');
+    transform: scale(1);
+  }
+  50% {
+    background-color: theme('colors.primary.200');
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: theme('colors.primary.100');
+    transform: scale(1);
+  }
+}
+
+.onboarding-pulse {
+  animation: onboarding-pulse 2s ease-in-out infinite;
 }
