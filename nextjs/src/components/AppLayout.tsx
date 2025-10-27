@@ -108,15 +108,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </button>
                         
                         {/* Onboarding Button */}
-                        <button
-                            onClick={handleOnboardingClick}
-                            className={`bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                                isLoaded && !hasSeenOnboarding ? 'onboarding-pulse' : ''
-                            }`}
-                            title="How to use Itergora"
-                        >
-                            <Info className="h-5 w-5" strokeWidth={1.5} />
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={handleOnboardingClick}
+                                className={`bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
+                                    isLoaded && !hasSeenOnboarding ? 'onboarding-pulse' : ''
+                                }`}
+                                title="How to use Itergora"
+                            >
+                                <Info className="h-5 w-5" strokeWidth={1.5} />
+                            </button>
+                            
+                            {/* Callout Box */}
+                            {isLoaded && !hasSeenOnboarding && (
+                                <div className="onboarding-callout">
+                                    Learn how to use Itergora
+                                </div>
+                            )}
+                        </div>
                         
                         {/* YouForm Button - visible on all screen sizes */}
                         <a
