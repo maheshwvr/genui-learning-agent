@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createCourse, deleteCourse } from '@/lib/supabase/courses'
 import { createSSRClient } from '@/lib/supabase/server'
 
 export async function GET() {
@@ -65,11 +64,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const course = await createCourse({
-      name: name.trim(),
-      description: description || null
-    })
+    // Use server-side client for authentication and course creation
+    const supabase = await createSSRClient()
+    
+    // Check authentication in server context
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (!user || userError) {
+      console.error('No valid user session in POST /api/courses')
+      return NextResponse.json(
+        { error: 'Authentication required. Please log in to create courses.' },
+        { status: 401 }
+      )
+    }
 
+    console.log('Creating course with authenticated user:', user.email)
+
+    // Create course directly with server-side client
+    const { data: course, error: courseError } = await (supabase as any)
+      .from('courses')
+      .insert({
+        name: name.trim(),
+        description: description || null,
+        user_id: user.id,
+      })
+      .select()
+      .single()
+
+    if (courseError) {
+      console.error('Database error creating course:', courseError)
+      throw new Error(`Failed to create course: ${courseError.message}`)
+    }
+
+    console.log('Course created successfully:', course)
     return NextResponse.json({ course }, { status: 201 })
   } catch (error) {
     console.error('Error creating course:', error)
@@ -103,20 +130,51 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const success = await deleteCourse(courseId)
-
-    if (!success) {
+    // Use server-side client for authentication and course deletion
+    const supabase = await createSSRClient()
+    
+    // Check authentication in server context
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (!user || userError) {
+      console.error('No valid user session in DELETE /api/courses')
       return NextResponse.json(
-        { error: 'Failed to delete course' },
-        { status: 500 }
+        { error: 'Authentication required. Please log in to delete courses.' },
+        { status: 401 }
       )
     }
 
+    console.log('Deleting course with authenticated user:', user.email, 'Course ID:', courseId)
+
+    // Delete course directly with server-side client
+    const { error: deleteError } = await (supabase as any)
+      .from('courses')
+      .delete()
+      .eq('id', courseId)
+      .eq('user_id', user.id)
+
+    if (deleteError) {
+      console.error('Database error deleting course:', deleteError)
+      throw new Error(`Failed to delete course: ${deleteError.message}`)
+    }
+
+    console.log('Course deleted successfully')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting course:', error)
+    
+    // Check if it's an authentication error
+    if (error instanceof Error && error.message.includes('not authenticated')) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please log in to delete courses.' },
+        { status: 401 }
+      )
+    }
+    
+    // Return more detailed error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     return NextResponse.json(
-      { error: 'Failed to delete course' },
+      { error: `Failed to delete course: ${errorMessage}` },
       { status: 500 }
     )
   }
