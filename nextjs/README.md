@@ -34,3 +34,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Sitemap
+
+This project exposes a simple sitemap at `/sitemap.xml` (App Router route).
+It is generated dynamically and uses the request origin to produce absolute URLs. To extend it, edit `src/app/sitemap.xml/route.ts` and add more paths or generate entries from your data layer.
+

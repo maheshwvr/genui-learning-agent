@@ -26,7 +26,7 @@ export default function AuthLayout({
         <div className="flex min-h-screen">
             <div className="w-full lg:w-1/2 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white relative">
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                    <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
+                    <h2 className="text-center text-3xl font-bold tracking-tight text-black">
                         {productName}
                     </h2>
                 </div>

@@ -7,7 +7,7 @@ import { GoogleAnalytics } from '@next/third-parties/google'
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_PRODUCTNAME,
-  description: "The best way to build your SaaS product.",
+  description: "Turn material into interactive lessons with Itergora—the course-led learning hub built for students, by students.",
 };
 
 export default function RootLayout({
