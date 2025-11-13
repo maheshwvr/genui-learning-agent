@@ -103,7 +103,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-                <div className="sticky top-0 z-[9995] flex items-center justify-between h-16 bg-white shadow-sm px-4">
+                <div className="sticky top-0 flex items-center justify-between h-16 bg-white shadow-sm px-4">
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={toggleSidebar}
@@ -113,10 +113,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </button>
                         
                         {/* Onboarding Button */}
-                        <div className="relative onboarding-button-container">
+                        <div className="relative onboarding-button-container z-[9999]">
                             <button
                                 onClick={handleOnboardingClick}
-                                className={`bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
+                                className={`bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 relative z-[9999] ${
                                     isLoaded && !hasSeenOnboarding ? 'onboarding-pulse' : ''
                                 }`}
                                 title="How to use Itergora"
@@ -126,7 +126,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             
                             {/* Callout Box */}
                             {isLoaded && !hasSeenOnboarding && (
-                                <div className="onboarding-callout">
+                                <div className="onboarding-callout z-[9999]">
                                     Learn how to use Itergora
                                 </div>
                             )}
