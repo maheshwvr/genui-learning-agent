@@ -14,15 +14,6 @@
 
 Itergora is a professional, elegant learning solution that revolutionizes how students interact with their study materials. Built with modern web technologies and powered by Gemini, the platform creates an adaptive learning environment where students can upload their course materials and engage in intelligent conversations with an AI tutor that understands their content.
 
-### ✨ Design Philosophy
-
-Our design philosophy centers on creating a **clean, robust, and gently pleasant** learning experience that feels natural rather than overwhelming. Every interaction is thoughtfully crafted with:
-
-- **Professional Elegance**: Clean aesthetics with smooth animations
-- **8-Point Grid System**: Consistent spacing for optimal readability  
-- **Natural Interactions**: Intuitive workflows that don't distract from learning
-- **Educational Focus**: Every feature designed to enhance understanding and retention
-
 ---
 
 ## 🚀 Core Learning Features
@@ -221,3 +212,4 @@ Change the theme by updating the `NEXT_PUBLIC_THEME` environment variable.
 - [Supabase](https://supabase.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
+
