@@ -501,6 +501,17 @@
   animation: onboarding-pulse 2s ease-in-out infinite;
 }
 
+/* Onboarding Button Container */
+.onboarding-button-container {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+.onboarding-button-container > button {
+  position: relative;
+  z-index: 9999 !important;
+}
+
 /* Onboarding Callout Box */
 .onboarding-callout {
   position: absolute;
@@ -516,7 +527,7 @@
   color: theme('colors.primary.700');
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   white-space: nowrap;
-  z-index: 50;
+  z-index: 9999 !important;
   opacity: 0;
   animation: callout-appear 0.5s ease-out 1s forwards;
 }
@@ -553,5 +564,28 @@
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Onboarding Screen Dimming Overlay */
+.onboarding-screen-dim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9990;
+  pointer-events: none;
+  opacity: 0;
+  animation: dim-appear 0.5s ease-out 1s forwards;
+}
+
+@keyframes dim-appear {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }

@@ -1,100 +1,157 @@
-# Supabase Next.js SaaS Template
+# Itergora - Intelligent Learning Platform
 
-A production-ready SaaS template built with Next.js 15, Supabase, and Tailwind CSS. This template provides everything you need to quickly launch your SaaS product, including authentication, user management, file storage, and more.
+[![Next.js](https://img.shields.io/badge/Next.js-15.1.3-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Vercel AI SDK](https://img.shields.io/badge/AI%20SDK-4.3.19-purple)](https://sdk.vercel.ai/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)](https://supabase.com/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-orange)](https://ai.google.dev/)
 
-## LIVE DEMO
+> **A sophisticated learning tool designed for tertiary students** - Transform your study materials into interactive, intelligent learning experiences with AI-powered conversations, adaptive assessments, and personalized flashcard systems.
 
-Demo is here - https://basicsass.razikus.com
+---
 
-## Self promo
-Hey, don't be a code printer in AI era. Check my book
+## 🎓 Overview
+
+Itergora is a professional, elegant learning solution that revolutionizes how students interact with their study materials. Built with modern web technologies and powered by Gemini, the platform creates an adaptive learning environment where students can upload their course materials and engage in intelligent conversations with an AI tutor that understands their content.
+
+### ✨ Design Philosophy
+
+Our design philosophy centers on creating a **clean, robust, and gently pleasant** learning experience that feels natural rather than overwhelming. Every interaction is thoughtfully crafted with:
+
+- **Professional Elegance**: Clean aesthetics with smooth animations
+- **8-Point Grid System**: Consistent spacing for optimal readability  
+- **Natural Interactions**: Intuitive workflows that don't distract from learning
+- **Educational Focus**: Every feature designed to enhance understanding and retention
+
+---
+
+## 🚀 Core Learning Features
+
+### 📚 **Intelligent Material Processing**
+- **Multi-format Support**: Upload PDFs, documents, presentations, and text files (up to 100MB)
+- **AI-Powered Context**: Google Gemini processes materials to understand content and structure
+- **Course Organization**: Organize materials by courses with optional topic tagging
+- **TUS Resumable Uploads**: Robust file upload with pause/resume capabilities
+
+### 💬 **Adaptive AI Conversations**
+- **Context-Aware Responses**: AI understands your uploaded materials and provides relevant answers
+- **Natural Learning Flow**: Conversational interface that adapts to your knowledge level
+- **Uncertainty Detection**: AI automatically detects when you need additional practice
+- **Material References**: Responses grounded in your specific course content
+
+### 🎯 **Generative UI Assessments**
+The platform features three types of intelligent assessments that appear dynamically based on learning context:
+
+#### **Multiple Choice Questions (MCQ)**
+- **Smart Generation**: AI creates relevant questions to test concept application
+- **Contextual Options**: Plausible distractors based on common misconceptions
+- **Immediate Feedback**: Detailed explanations for both correct and incorrect answers
+
+#### **True/False Statements**
+- **Misconception Targeting**: Addresses common areas of confusion
+- **Nuanced Exploration**: Tests subtle distinctions in concepts
+- **Educational Explanations**: Every statement designed to enhance understanding
+
+#### **Interactive Flashcards**
+- **Active Recall Focus**: AI-generated cards for key concepts and definitions
+- **Flip Animation**: Smooth concept-to-definition transitions
+- **Performance Tracking**: Three-level assessment (Got it, On track, Still unclear)
+- **Personal Library**: Save individual flashcards for organized review
+
+### 📊 **Learning Analytics & Progress**
+- **Performance Tracking**: Silent summaries track your understanding patterns
+- **Adaptive Difficulty**: AI adjusts question complexity based on your responses
+- **Learning Continuity**: Conversation context maintained across sessions
+- **Flashcard Library**: Organized collection of saved flashcards by course and topic
+
+### 🔐 **Security & Privacy**
+- **Supabase Authentication**: Secure user management with row-level security
+- **Private Learning Spaces**: Your materials and progress are completely private
+- **Cross-Device Sync**: Access your learning materials anywhere
+- **Data Ownership**: Full control over your educational content
+
+---
+
+## 🛠️ Technical Architecture
+
+### **Frontend Excellence**
+- **Next.js 15.1.3**: App Router with React 19 and concurrent features
+- **TypeScript**: Full type safety across frontend and backend
+- **Tailwind CSS**: Utility-first styling with shadcn/ui components
+- **Radix UI**: Accessible component primitives with WCAG 2.1 compliance
+- **Responsive Design**: Seamless experience across desktop, tablet, and mobile
+
+### **AI Integration**
+- **Vercel AI SDK v4.3.19**: Streaming responses with tool calling
+- **Google Gemini 2.5 Flash Lite**: Advanced language model for educational content
+- **File Processing**: Gemini File API for document understanding
+- **Structured Generation**: Zod schemas for consistent AI responses
+- **Edge Runtime**: Fast API responses with global distribution
+
+### **Database & Storage**
+- **Supabase**: PostgreSQL with real-time capabilities
+- **Row-Level Security (RLS)**: User data isolation and privacy
+- **TUS Protocol**: Resumable file uploads up to 100MB
+- **JSONB Storage**: Flexible message and assessment storage
+- **Efficient Indexing**: Optimized queries for course and material operations
+
+### **Performance Features**
+- **Streaming UI**: Real-time response rendering
+- **Optimistic Updates**: Smooth user interactions
+- **Concurrent Features**: React 19 for improved performance
+- **Efficient Caching**: Strategic data caching for better UX
+
+---
+
+## 📁 Project Structure
+
 ```
-http://razikus.gumroad.com/l/dirtycode - live now!
-https://www.amazon.com/dp/B0FNR716CF - live from 01.09
-https://books.apple.com/us/book/dirty-code-but-works/id6751538660 - live from 01.09
-https://play.google.com/store/books/details?id=5UWBEQAAQBAJ - live from 01.09
+itergora-learning-platform/
+├── nextjs/                          # Main application
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── app/                  # Authenticated application
+│   │   │   │   ├── learn/            # Learning interface & chat
+│   │   │   │   ├── storage/          # Materials management
+│   │   │   │   └── flashcards/       # Flashcard library
+│   │   │   └── api/                  # Backend API routes
+│   │   ├── components/
+│   │   │   ├── ui/                   # Reusable UI components
+│   │   │   ├── custom/               # Learning-specific components
+│   │   │   └── DashboardContent.tsx  # Homepage dashboard
+│   │   └── lib/
+│   │       ├── ai/                   # AI integration (schemas, actions, prompts)
+│   │       ├── supabase/             # Database operations
+│   │       └── types.ts              # TypeScript definitions
+│   └── package.json
+├── supabase/                         # Database migrations & config
+├── guides/                           # Implementation documentation
+└── README.md
 ```
 
-## Deployment video
+---
 
-Video is here - https://www.youtube.com/watch?v=kzbXavLndmE
+## 🎯 User Learning Journey
 
-## Migration from auth schema
+### **Getting Started**
+1. **Authentication**: Secure sign-up with Supabase authentication
+2. **Onboarding**: Interactive tutorial introducing core features  
+3. **Course Creation**: Organize your learning materials by subject/course
 
-According to this - https://github.com/Razikus/supabase-nextjs-template/issues/4
+### **Learning Workflow**
+1. **Upload Materials**: Drag and drop PDFs, documents, and study notes
+2. **Topic Organization**: Tag materials by topic for focused learning sessions
+3. **Start Learning**: Select course and topics to begin AI-powered conversation
+4. **Adaptive Practice**: Receive MCQs, True/False questions, and flashcards
+5. **Progress Tracking**: Build your personal flashcard library and review patterns
 
-We are no longer able to modify auth schema. I modified original migrations to rename it to custom schema. If you need to migrate from older version - check supabase/migrations_for_old/20250525183944_auth_removal.sql
+### **Advanced Features**
+- **Cross-Course Learning**: Explore connections between different subjects
+- **Spaced Repetition**: AI-optimized flashcard review timing
+- **Learning Analytics**: Understand your progress and identify improvement areas
+- **Contextual Conversations**: AI references specific content from your materials
 
-## SupaNuggets
-
-On top of this template I'm building a SupaNuggets series - 50 mini apps
-
-https://supanuggets.razikus.com - grab your copy for free :) (Pay As You Want model)
-
-## 🚀 Features
-
-- **Authentication**
-    - Email/Password authentication
-    - Multi-factor authentication (MFA) support
-    - OAuth/SSO integration ready
-    - Password reset and email verification
-
-- **User Management**
-    - User profiles and settings
-    - Secure password management
-    - Session handling
-
-- **File Management Demo (2FA ready)**
-    - Secure file upload and storage
-    - File sharing capabilities
-    - Drag-and-drop interface
-    - Progress tracking
-
-- **Task Management Demo (2FA ready)**
-    - CRUD operations example
-    - Real-time updates
-    - Filtering and sorting
-    - Row-level security
-
-- **Security**
-    - Row Level Security (RLS) policies
-    - Secure file storage policies
-    - Protected API routes
-    - MFA implementation
-
-- **UI/UX**
-    - Modern, responsive design
-    - Dark mode support
-    - Loading states
-    - Error handling
-    - Toast notifications
-    - Confetti animations
-
-- **Legal & Compliance**
-    - Privacy Policy template
-    - Terms of Service template
-    - Refund Policy template
-    - GDPR-ready cookie consent
-
-## 🛠️ Tech Stack
-
-- **Frontend**
-    - Next.js 15 (App Router)
-    - React 19
-    - Tailwind CSS
-    - shadcn/ui components
-    - Lucide icons
-
-- **Backend**
-    - Supabase
-    - PostgreSQL
-    - Row Level Security
-    - Storage Buckets
-
-- **Authentication**
-    - Supabase Auth
-    - MFA support
-    - OAuth providers
+---
 
 ## 📦 Getting Started - local dev
 
@@ -157,42 +214,6 @@ The template includes several pre-built themes:
 - `theme-green`
 
 Change the theme by updating the `NEXT_PUBLIC_THEME` environment variable.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-
-## Need Multitenancy, Billing (Paddle) and Role Based Access Control?
-
-I have paid template as well available here:
-
-https://sasstemplate.razikus.com
-
-Basically it's the same template but with Paddle + organisations API keys + multiple organisations + Role Based Access Control
-
-For code GITHUB you can get -50% off
-
-https://razikus.gumroad.com/l/supatemplate/GITHUB
-
-## 📝 License
-
-This project is licensed under the Apache License - see the LICENSE file for details.
-
-## 💪 Support
-
-If you find this template helpful, please consider giving it a star ⭐️
-
-Or buy me a coffee!
-
-- [BuyMeACoffee](https://buymeacoffee.com/razikus)
-
-My socials:
-
-- [Twitter](https://twitter.com/Razikus_)
-- [GitHub](https://github.com/Razikus)
-- [Website](https://www.razikus.com)
-
 
 ## 🙏 Acknowledgments
 

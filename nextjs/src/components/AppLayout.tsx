@@ -58,6 +58,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-100 flex">
+            {/* Onboarding Screen Dim Overlay */}
+            {isLoaded && !hasSeenOnboarding && (
+                <div className="onboarding-screen-dim" />
+            )}
+            
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden"
@@ -98,7 +103,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-                <div className="sticky top-0 z-10 flex items-center justify-between h-16 bg-white shadow-sm px-4">
+                <div className="sticky top-0 z-[9995] flex items-center justify-between h-16 bg-white shadow-sm px-4">
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={toggleSidebar}
@@ -108,7 +113,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </button>
                         
                         {/* Onboarding Button */}
-                        <div className="relative">
+                        <div className="relative onboarding-button-container">
                             <button
                                 onClick={handleOnboardingClick}
                                 className={`bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
