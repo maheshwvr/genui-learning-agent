@@ -19,6 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isUserDropdownOpen, setUserDropdownOpen] = useState(false);
     const [isOnboardingOpen, setOnboardingOpen] = useState(false);
+    const [spotlightFading, setSpotlightFading] = useState(false);
     const { hasSeenOnboarding, markOnboardingAsSeen, isLoaded } = useOnboardingSeen();
     const pathname = usePathname();
     const router = useRouter();
@@ -39,8 +40,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
 
     const handleOnboardingClick = () => {
-        markOnboardingAsSeen();
-        setOnboardingOpen(true);
+        setSpotlightFading(true);
+        
+        // Delay marking as seen and opening modal to allow fade animation
+        setTimeout(() => {
+            markOnboardingAsSeen();
+            setOnboardingOpen(true);
+        }, 200);
     };
 
     const productName = process.env.NEXT_PUBLIC_PRODUCTNAME;
@@ -58,9 +64,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-gray-100 flex">
-            {/* Onboarding Screen Dim Overlay */}
+            {/* Onboarding Spotlight Overlay */}
             {isLoaded && !hasSeenOnboarding && (
-                <div className="onboarding-screen-dim" />
+                <div className={`onboarding-spotlight-overlay ${spotlightFading ? 'fade-out' : ''}`} />
             )}
             
             {isSidebarOpen && (

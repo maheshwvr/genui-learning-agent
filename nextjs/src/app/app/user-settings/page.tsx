@@ -5,7 +5,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageHeader } from '@/components/ui/page-header';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { createSPASassClientAuthenticated as createSPASassClient } from '@/lib/supabase/client';
-import { CheckCircle } from 'lucide-react';
 import { MFASetup } from '@/components/MFASetup';
 
 export default function UserSettingsPage() {
@@ -17,7 +16,6 @@ export default function UserSettingsPage() {
     const [loading, setLoading] = useState(false);
     const [profileLoading, setProfileLoading] = useState(false);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
 
     // Initialize name fields when user data loads
     React.useEffect(() => {
@@ -38,7 +36,6 @@ export default function UserSettingsPage() {
 
         setLoading(true);
         setError('');
-        setSuccess('');
 
         try {
             const supabase = await createSPASassClient();
@@ -50,7 +47,6 @@ export default function UserSettingsPage() {
 
             if (error) throw error;
 
-            setSuccess('Password updated successfully');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err: Error | unknown) {
@@ -75,7 +71,6 @@ export default function UserSettingsPage() {
 
         setProfileLoading(true);
         setError('');
-        setSuccess('');
 
         try {
             const supabase = await createSPASassClient();
@@ -83,7 +78,6 @@ export default function UserSettingsPage() {
 
             if (error) throw error;
 
-            setSuccess('Profile updated successfully');
             // Refresh the page to update the context
             window.location.reload();
         } catch (err: Error | unknown) {
@@ -116,13 +110,6 @@ export default function UserSettingsPage() {
             {error && (
                 <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
-
-            {success && (
-                <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>{success}</AlertDescription>
                 </Alert>
             )}
 
@@ -228,7 +215,7 @@ export default function UserSettingsPage() {
 
                     <MFASetup
                         onStatusChange={() => {
-                            setSuccess('Two-factor authentication settings updated successfully');
+                            console.log('Two-factor authentication settings updated');
                         }}
                     />
                 </div>

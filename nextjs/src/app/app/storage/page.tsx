@@ -15,7 +15,7 @@ import { TopicAssociationDropdown } from '@/components/ui/topic-association-drop
 import { TopicUploadSelector } from '@/components/ui/topic-upload-selector';
 import { UploadProgress } from '@/components/ui/upload-progress';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Upload, Trash2, Loader2, FileIcon, AlertCircle, CheckCircle, Tag, Plus } from 'lucide-react';
+import { Upload, Trash2, Loader2, FileIcon, AlertCircle, Tag, Plus } from 'lucide-react';
 import { CourseSelector } from '@/components/ui/course-selector';
 import { CreateCourseButton } from '@/components/ui/create-course-button';
 import { formatFileSize } from '@/lib/utils/file-utils';
@@ -50,7 +50,6 @@ export default function MaterialsManagementPage() {
     const [coursesLoading, setCoursesLoading] = useState(true);
     const [courses, setCourses] = useState<Course[]>([]);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [showUploadDialog, setShowUploadDialog] = useState(false);
     const [uploadTopics, setUploadTopics] = useState<string[]>([]);
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
@@ -144,7 +143,6 @@ export default function MaterialsManagementPage() {
             // Refresh materials list after all uploads complete
             if (selectedCourse) {
                 await loadCourseMaterials(selectedCourse.id);
-                setSuccess(`${tusUpload.uploadQueue.filter(q => q.status === 'completed').length} material(s) uploaded successfully`);
                 setFileToUpload(null);
                 setUploadTopics([]);
                 setShowUploadDialog(false);
@@ -211,7 +209,6 @@ export default function MaterialsManagementPage() {
 
             if (response.ok) {
                 await loadCourseMaterials(selectedCourse.id);
-                setSuccess('Material deleted successfully');
             } else {
                 setError('Failed to delete material');
             }
@@ -248,13 +245,6 @@ export default function MaterialsManagementPage() {
                 <Alert className="border-destructive bg-destructive/10">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-destructive">{error}</AlertDescription>
-                </Alert>
-            )}
-
-            {success && (
-                <Alert className="border-green-500 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">{success}</AlertDescription>
                 </Alert>
             )}
 
