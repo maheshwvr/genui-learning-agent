@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGlobal } from '@/lib/context/GlobalContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -43,6 +44,7 @@ interface Course {
 
 export default function MaterialsManagementPage() {
     const { user, loading: authLoading } = useGlobal();
+    const router = useRouter();
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [materials, setMaterials] = useState<Material[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
@@ -140,13 +142,16 @@ export default function MaterialsManagementPage() {
             }
         },
         onAllUploadsComplete: async () => {
-            // Refresh materials list after all uploads complete
+            // Refresh page after all uploads complete
             if (selectedCourse) {
-                await loadCourseMaterials(selectedCourse.id);
                 setFileToUpload(null);
                 setUploadTopics([]);
                 setShowUploadDialog(false);
                 tusUpload.clearCompleted();
+                // Force full page refresh with small delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
             }
         },
         onError: (error: string, file: File) => {
@@ -208,7 +213,10 @@ export default function MaterialsManagementPage() {
             });
 
             if (response.ok) {
-                await loadCourseMaterials(selectedCourse.id);
+                // Force full page refresh with small delay after deletion
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
             } else {
                 setError('Failed to delete material');
             }
