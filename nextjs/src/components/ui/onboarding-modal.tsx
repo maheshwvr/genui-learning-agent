@@ -14,21 +14,21 @@ const steps = [
   {
     id: 1,
     title: "Upload Materials",
-    description: "Add your study materials to get started with Itergora. Upload PDFs, documents, and notes.",
+    description: "Add your study materials to get started with Itergora. Upload lecture slides, workshop questions, and notes.",
     icon: Upload,
     delay: 0
   },
   {
     id: 2,
     title: "Chat with Itergora", 
-    description: "Ask questions and explore your materials with our AI-powered chat assistant.",
+    description: "Get intelligent, relevant explanations, coupled with interactive real-time quizzes and flashcards - built around your course.",
     icon: MessageCircle,
     delay: 500
   },
   {
     id: 3,
     title: "Review Flashcards",
-    description: "Study with AI-generated flashcards tailored to your uploaded materials.",
+    description: "Study with personalised flashcards tailored to your study materials.",
     icon: BookOpen,
     delay: 1000
   }
