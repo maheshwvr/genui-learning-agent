@@ -15,8 +15,6 @@ const AnimatedButton = forwardRef<HTMLButtonElement, AnimatedButtonProps>(
     const [isHovered, setIsHovered] = useState(false);
     const [isClicked, setIsClicked] = useState(false);
     const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
-    const [showHoverRipple, setShowHoverRipple] = useState(false);
-    const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
     const internalRef = useRef<HTMLButtonElement>(null);
 
     // Color detection function to determine animation colors from className
@@ -99,21 +97,7 @@ const AnimatedButton = forwardRef<HTMLButtonElement, AnimatedButtonProps>(
 
     const handleMouseEnter = (e: MouseEvent<HTMLButtonElement>) => {
       if (!internalRef.current) return;
-      
-      // Capture the position where the mouse entered
-      const rect = internalRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      setHoverRipplePosition({ x, y });
       setIsHovered(true);
-      setShowHoverRipple(true);
-      
-      // Reset the hover ripple after animation completes
-      setTimeout(() => {
-        setShowHoverRipple(false);
-      }, 800);
-      
       // Call original onMouseEnter if provided
       if (onMouseEnter) {
         onMouseEnter(e);
@@ -192,19 +176,7 @@ const AnimatedButton = forwardRef<HTMLButtonElement, AnimatedButtonProps>(
           </div>
         )}
 
-        {/* Hover entry ripple effect */}
-        {showHoverRipple && (
-          <div
-            className="absolute pointer-events-none z-0"
-            style={{
-              left: hoverRipplePosition.x,
-              top: hoverRipplePosition.y,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            <div className={`w-0 h-0 rounded-full opacity-25 blur-sm animate-hover-ripple ${colors.hoverRipple}`} />
-          </div>
-        )}
+        {/* Hover entry ripple removed */}
 
         {/* Click ripple effect */}
         {isClicked && (

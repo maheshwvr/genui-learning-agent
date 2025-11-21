@@ -362,25 +362,8 @@
   }
 }
 
-@keyframes hover-ripple {
-  0% {
-    width: 0px;
-    height: 0px;
-    opacity: 0.25;
-  }
-  100% {
-    width: 60px;
-    height: 60px;
-    opacity: 0;
-  }
-}
-
 .animate-ripple {
   animation: ripple 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.animate-hover-ripple {
-  animation: hover-ripple 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
 
 /* Additional blur utilities for subtle effects */

@@ -15,8 +15,6 @@ export default function AnimatedNavButton({ name, href, icon: Icon, isActive }: 
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
-  const [showHoverRipple, setShowHoverRipple] = useState(false);
-  const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLAnchorElement>(null);
 
   const handleMouseMove = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -31,20 +29,7 @@ export default function AnimatedNavButton({ name, href, icon: Icon, isActive }: 
 
   const handleMouseEnter = (e: MouseEvent<HTMLAnchorElement>) => {
     if (!buttonRef.current) return;
-    
-    // Capture the position where the mouse entered
-    const rect = buttonRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setHoverRipplePosition({ x, y });
     setIsHovered(true);
-    setShowHoverRipple(true);
-    
-    // Reset the hover ripple after animation completes
-    setTimeout(() => {
-      setShowHoverRipple(false);
-    }, 800);
   };
 
   const handleMouseLeave = () => {
@@ -134,25 +119,7 @@ export default function AnimatedNavButton({ name, href, icon: Icon, isActive }: 
         </div>
       )}
 
-      {/* Hover entry ripple effect */}
-      {showHoverRipple && (
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: hoverRipplePosition.x,
-            top: hoverRipplePosition.y,
-            transform: 'translate(-50%, -50%)',
-          }}
-        >
-          <div
-            className={`w-0 h-0 rounded-full opacity-25 blur-sm animate-hover-ripple ${
-              isActive 
-                ? 'bg-primary-300' 
-                : 'bg-gray-300'
-            }`}
-          />
-        </div>
-      )}
+      {/* Hover entry ripple removed */}
 
       {/* Click ripple effect */}
       {isClicked && (

@@ -22,8 +22,6 @@ function AnimatedLinkCard({ href, icon: Icon, title, description, className = ''
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
-  const [showHoverRipple, setShowHoverRipple] = useState(false);
-  const [hoverRipplePosition, setHoverRipplePosition] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLAnchorElement>(null);
 
   const handleMouseMove = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -38,18 +36,7 @@ function AnimatedLinkCard({ href, icon: Icon, title, description, className = ''
 
   const handleMouseEnter = (e: MouseEvent<HTMLAnchorElement>) => {
     if (!cardRef.current) return;
-    
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    setHoverRipplePosition({ x, y });
     setIsHovered(true);
-    setShowHoverRipple(true);
-    
-    setTimeout(() => {
-      setShowHoverRipple(false);
-    }, 800);
   };
 
   const handleMouseLeave = () => {
@@ -99,19 +86,7 @@ function AnimatedLinkCard({ href, icon: Icon, title, description, className = ''
         </div>
       )}
 
-      {/* Hover entry ripple effect */}
-      {showHoverRipple && (
-        <div
-          className="absolute pointer-events-none z-0"
-          style={{
-            left: hoverRipplePosition.x,
-            top: hoverRipplePosition.y,
-            transform: 'translate(-50%, -50%)',
-          }}
-        >
-          <div className="w-0 h-0 rounded-full opacity-25 blur-sm animate-hover-ripple bg-primary-300" />
-        </div>
-      )}
+      {/* Hover entry ripple removed */}
 
       {/* Click ripple effect */}
       {isClicked && (
