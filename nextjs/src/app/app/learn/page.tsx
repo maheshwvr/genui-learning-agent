@@ -38,8 +38,10 @@ export default function LearnPage() {
     setSelectedCourse(course);
     setSelectedTopics([]); // Reset topics when course changes
     
-    // Always proceed to topic selection step, regardless of material count
-    setCurrentStep('topic-selection');
+    // Delay transition to topic selection to allow button animation to play
+    setTimeout(() => {
+      setCurrentStep('topic-selection');
+    }, 1000);
   };
 
   // Handle topic selection changes
