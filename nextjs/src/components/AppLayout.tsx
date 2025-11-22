@@ -109,7 +109,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-                <div className="sticky top-0 flex items-center justify-between h-16 bg-white shadow-sm px-4">
+                <div className="sticky top-0 flex items-center justify-between h-16 bg-white shadow-sm px-4 z-[49]">
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={toggleSidebar}

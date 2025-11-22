@@ -59,8 +59,8 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={handleClose}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="onboarding-backdrop fixed inset-0 z-50" />
-        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-[95vw] max-w-6xl max-h-[95vh] overflow-y-auto border-0 bg-transparent p-4 sm:p-8 shadow-none focus:outline-none">
+        <DialogPrimitive.Overlay className="onboarding-backdrop fixed inset-0 z-[9999]" />
+        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-[9999] translate-x-[-50%] translate-y-[-50%] w-[95vw] max-w-6xl max-h-[95vh] overflow-y-auto border-0 bg-transparent p-4 sm:p-8 shadow-none focus:outline-none">
           {/* Main Glassmorphism Card Container */}
           <div className="onboarding-main-card rounded-2xl p-6 sm:p-8 lg:p-12 relative">
             {/* Close button */}
