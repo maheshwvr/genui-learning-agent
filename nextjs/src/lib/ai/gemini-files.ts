@@ -335,7 +335,7 @@ export async function processLessonMaterialsWithUpload(
         // Wait for the file to be processed
         let getFile = await ai.files.get({ name: file.name });
         let attempts = 0;
-        const maxAttempts = 12; // 1 minute total wait time
+        const maxAttempts = 60;
         
         while (getFile.state === 'PROCESSING' && attempts < maxAttempts) {
           console.log(`File ${material.file_name} is still processing (attempt ${attempts + 1}/${maxAttempts})`);
