@@ -17,6 +17,10 @@ import { TopicUploadSelector } from '@/components/ui/topic-upload-selector';
 import { UploadProgress } from '@/components/ui/upload-progress';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Upload, Trash2, Loader2, FileIcon, AlertCircle, Tag, Plus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TopicsTab } from '@/components/ui/topics-tab';
+import { DraggableMaterialItem } from '@/components/ui/draggable-material-item';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { CourseSelector } from '@/components/ui/course-selector';
 import { CreateCourseButton } from '@/components/ui/create-course-button';
 import { formatFileSize } from '@/lib/utils/file-utils';
@@ -56,6 +60,8 @@ export default function MaterialsManagementPage() {
     const [uploadTopics, setUploadTopics] = useState<string[]>([]);
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const [courseSelectorKey, setCourseSelectorKey] = useState(0); // For refreshing CourseSelector
+    const [activeTab, setActiveTab] = useState<'materials' | 'topics'>('materials');
+    const [activeId, setActiveId] = useState<string | null>(null);
 
     // Force refresh of CourseSelector when a new course is created
     const handleCourseCreated = () => {
@@ -235,6 +241,34 @@ export default function MaterialsManagementPage() {
             minute: '2-digit'
         });
     };
+
+    const handleMaterialTopicsUpdate = async (materialId: string, topicTags: string[]) => {
+        try {
+            const response = await fetch(`/api/materials/${materialId}/topics`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topics: topicTags })
+            });
+
+            if (response.ok) {
+                // Refresh the materials and topics
+                if (selectedCourse) {
+                    loadCourseMaterials(selectedCourse.id);
+                }
+            } else {
+                setError('Failed to update material topics');
+            }
+        } catch (err) {
+            setError('Failed to update material topics');
+            console.error('Error updating material topics:', err);
+        }
+    };
+
+    const handleTopicsEdit = (materialId: string) => {
+        // This would typically open a topic association modal
+        // For now, we can use the existing TopicAssociationDropdown functionality
+        console.log('Edit topics for material:', materialId);
+    };
     return (
         <div className="h-full flex flex-col">
             <div className="flex-none p-4">
@@ -292,14 +326,15 @@ export default function MaterialsManagementPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-between">
-                                        <span className="text-xl">Materials for {selectedCourse.name}</span>
-                                        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-                                            <DialogTrigger asChild>
-                                                <Button>
-                                                    <Plus className="h-4 w-4 mr-2" />
-                                                    Add Material
-                                                </Button>
-                                            </DialogTrigger>
+                                        <span className="text-xl">{selectedCourse.name}</span>
+                                        {activeTab === 'materials' && (
+                                            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                                                <DialogTrigger asChild>
+                                                    <Button>
+                                                        <Plus className="h-4 w-4 mr-2" />
+                                                        Add Material
+                                                    </Button>
+                                                </DialogTrigger>
                                             <DialogContent>
                                                 <DialogHeader>
                                                     <DialogTitle>Upload Material</DialogTitle>
@@ -357,14 +392,26 @@ export default function MaterialsManagementPage() {
                                                     </div>
                                                 </div>
                                             </DialogContent>
-                                        </Dialog>
+                                            </Dialog>
+                                        )}
                                     </CardTitle>
-                                    <CardDescription>
-                                        {materials.length} material{materials.length !== 1 ? 's' : ''} 
-                                        {topics.length > 0 && ` • ${topics.length} topic${topics.length !== 1 ? 's' : ''}`}
-                                    </CardDescription>
                                 </CardHeader>
-                                <CardContent>
+                                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'materials' | 'topics')}>
+                                    <div className="px-6 pb-4">
+                                        <TabsList className="grid w-full grid-cols-2">
+                                            <TabsTrigger value="materials" className="flex items-center gap-2">
+                                                <FileIcon className="h-4 w-4" />
+                                                Materials ({materials.length})
+                                            </TabsTrigger>
+                                            <TabsTrigger value="topics" className="flex items-center gap-2">
+                                                <Tag className="h-4 w-4" />
+                                                Topics ({topics.length})
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    </div>
+                                    
+                                    <TabsContent value="materials">
+                                        <CardContent>
                                     <DragDropZone
                                         onFilesDropped={handleFileUpload}
                                         disabled={tusUpload.isUploading}
@@ -407,64 +454,81 @@ export default function MaterialsManagementPage() {
                                         ) : (
                                             <div className="space-y-3">
                                                 {materials.map((material) => (
-                                                    <div
-                                                        key={material.id}
-                                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
-                                                    >
-                                                        <div className="flex items-center space-x-3 min-w-0 flex-1">
-                                                            <FileIcon className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="font-medium truncate">{material.file_name}</p>
-                                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                                                    <span>{formatFileSize(material.file_size)}</span>
-                                                                    <span>{formatDate(material.created_at)}</span>
-                                                                    {material.topic_tags.length > 0 && (
-                                                                        <div className="flex items-center space-x-1">
-                                                                            <Tag className="h-3 w-3" />
-                                                                            <span>{material.topic_tags.join(', ')}</span>
-                                                                        </div>
-                                                                    )}
+                                                    <div key={material.id}>
+                                                        <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
+                                                            <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                                                <FileIcon className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="font-medium truncate">{material.file_name}</p>
+                                                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                                                        <span>{formatFileSize(material.file_size)}</span>
+                                                                        <span>{formatDate(material.created_at)}</span>
+                                                                        {material.topic_tags.length > 0 && (
+                                                                            <div className="flex items-center space-x-1">
+                                                                                <Tag className="h-3 w-3" />
+                                                                                <span>{material.topic_tags.join(', ')}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <TopicAssociationDropdown
-                                                                materialId={material.id}
-                                                                courseId={selectedCourse.id}
-                                                                currentTopics={material.topic_tags}
-                                                                onTopicsChange={() => loadCourseMaterials(selectedCourse.id)}
-                                                            />
-                                                            <AlertDialog>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <Button variant="ghost" size="sm">
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </AlertDialogTrigger>
-                                                                <AlertDialogContent>
-                                                                    <AlertDialogHeader>
-                                                                        <AlertDialogTitle>Delete Material</AlertDialogTitle>
-                                                                        <AlertDialogDescription>
-                                                                            Are you sure you want to delete "{material.file_name}"? This action cannot be undone.
-                                                                        </AlertDialogDescription>
-                                                                    </AlertDialogHeader>
-                                                                    <AlertDialogFooter>
-                                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                        <AlertDialogAction
-                                                                            onClick={() => deleteMaterial(material.id)}
-                                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                                        >
-                                                                            Delete
-                                                                        </AlertDialogAction>
-                                                                    </AlertDialogFooter>
-                                                                </AlertDialogContent>
-                                                            </AlertDialog>
+                                                            <div className="flex items-center space-x-2">
+                                                                <TopicAssociationDropdown
+                                                                    materialId={material.id}
+                                                                    courseId={selectedCourse.id}
+                                                                    currentTopics={material.topic_tags}
+                                                                    onTopicsChange={() => loadCourseMaterials(selectedCourse.id)}
+                                                                />
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button variant="ghost" size="sm">
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Delete Material</AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                Are you sure you want to delete "{material.file_name}"? This action cannot be undone.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                            <AlertDialogAction
+                                                                                onClick={() => deleteMaterial(material.id)}
+                                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                            >
+                                                                                Delete
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         )}
                                     </DragDropZone>
-                                </CardContent>
+                                        </CardContent>
+                                    </TabsContent>
+                                    
+                                    <TabsContent value="topics" className="mt-0">
+                                        <CardContent className="pt-0">
+                                            <TopicsTab
+                                                courseId={selectedCourse.id}
+                                                courseName={selectedCourse.name}
+                                                topics={topics}
+                                                materials={materials}
+                                                loading={loading}
+                                                onRefresh={() => loadCourseMaterials(selectedCourse.id)}
+                                                onMaterialTopicsUpdate={handleMaterialTopicsUpdate}
+                                                onTopicsEdit={handleTopicsEdit}
+                                                onMaterialDelete={deleteMaterial}
+                                            />
+                                        </CardContent>
+                                    </TabsContent>
+                                </Tabs>
                             </Card>
                         ) : (
                             <Card className="text-center py-12">
